@@ -5,13 +5,12 @@ import DashboardHeader from './DashboardHeader';
 import DatabaseStatus from './DatabaseStatus';
 import UserManagement from './UserManagement';
 import DoorManagement from './DoorManagement';
-import SystemSettings from './SystemSettings';
-import DatabaseSettings from './DatabaseSettings';
 import DoorPermissions from './DoorPermissions';
 import EmailNotifications from './EmailNotifications';
 import PinManagement from './PinManagement';
-import type { User } from '@/types/database';
 import UnifiedLogsTab from './UnifiedLogsTab';
+import SystemAdminSettings from './SystemAdminSettings'; // newly created
+import type { User } from '@/types/database';
 
 interface AdminDashboardProps {
   user: User;
@@ -26,13 +25,12 @@ const AdminDashboard = ({ user, onLogout }: AdminDashboardProps) => {
       <DashboardHeader user={user} onLogout={onLogout} />
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 bg-white/80 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-6 bg-white/80 backdrop-blur-sm">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="doors">Doors</TabsTrigger>
             <TabsTrigger value="logs">Logs</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="database">Database</TabsTrigger>
             <TabsTrigger value="system">System</TabsTrigger>
           </TabsList>
           <TabsContent value="overview">
@@ -50,11 +48,8 @@ const AdminDashboard = ({ user, onLogout }: AdminDashboardProps) => {
           <TabsContent value="notifications">
             <EmailNotifications />
           </TabsContent>
-          <TabsContent value="database">
-            <DatabaseSettings />
-          </TabsContent>
           <TabsContent value="system">
-            <SystemSettings />
+            <SystemAdminSettings />
           </TabsContent>
         </Tabs>
       </main>
