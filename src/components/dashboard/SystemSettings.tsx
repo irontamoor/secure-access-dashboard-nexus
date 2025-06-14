@@ -9,7 +9,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Mail, Database, Shield } from 'lucide-react';
 import type { SystemSetting } from '@/types/database';
 import SmtpSettingsCard from "./system-settings/SmtpSettingsCard";
-import LocalAdminSettingsCard from "./system-settings/LocalAdminSettingsCard";
 
 const SystemSettings = () => {
   const { toast } = useToast();
@@ -97,11 +96,6 @@ const SystemSettings = () => {
           setSettings={setSettings}
           updateSetting={updateSetting}
           testSMTPConnection={testSMTPConnection}
-        />
-        <LocalAdminSettingsCard
-          settings={settings}
-          setSettings={setSettings}
-          updateSetting={updateSetting}
         />
       </div>
     </div>
