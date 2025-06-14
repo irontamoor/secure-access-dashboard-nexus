@@ -62,7 +62,7 @@ const UserCard = ({
                   {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                 </Badge>
               </div>
-              {/* Merge PIN and Card Number display */}
+              {/* Card Number section only */}
               <div className="mt-2 flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600">Card Number:</span>
@@ -89,34 +89,29 @@ const UserCard = ({
                     </>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">PIN:</span>
-                  {/* Always display dots, never show PIN */}
-                  <span className="font-mono text-green-700">••••</span>
-                  {/* Remove the show PIN, but keep management buttons */}
-                  {!user.disabled && !user.pin_disabled && (
-                    <>
-                      <Button
-                        onClick={() => onResetPin(user)}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center space-x-1"
-                      >
-                        <Settings className="w-4 h-4" />
-                        <span>Reset PIN</span>
-                      </Button>
-                      <Button
-                        onClick={() => onEmailPin(user)}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center space-x-1"
-                      >
-                        <Mail className="w-4 h-4" />
-                        <span>Email PIN</span>
-                      </Button>
-                    </>
-                  )}
-                </div>
+                {/* Remove PIN UI - only Card Number remains */}
+                {!user.disabled && !user.pin_disabled && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => onResetPin(user)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-1"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Reset PIN</span>
+                    </Button>
+                    <Button
+                      onClick={() => onEmailPin(user)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-1"
+                    >
+                      <Mail className="w-4 h-4" />
+                      <span>Email PIN</span>
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -201,4 +196,4 @@ const UserCard = ({
 
 export default UserCard;
 
-// NOTE: This file is 201 lines. Please consider refactoring for maintainability.
+// NOTE: This file is 205 lines. Please consider refactoring for maintainability.
