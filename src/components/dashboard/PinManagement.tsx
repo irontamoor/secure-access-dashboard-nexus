@@ -37,7 +37,14 @@ const PinManagement = ({ isAdmin, userId }: PinManagementProps) => {
         .order('name');
 
       if (error) throw error;
-      setAllUsers(data || []);
+      
+      // Transform the data to match our User interface
+      const transformedData: UserType[] = (data || []).map(user => ({
+        ...user,
+        role: user.role as 'admin' | 'staff'
+      }));
+      
+      setAllUsers(transformedData);
     } catch (error) {
       console.error('Error loading users:', error);
       toast({

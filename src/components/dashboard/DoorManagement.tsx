@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,7 +35,16 @@ const DoorManagement = () => {
         .order('name');
 
       if (error) throw error;
-      setDoors(data || []);
+      
+      // Transform the data to match our Door interface
+      const transformedData: Door[] = (data || []).map(door => ({
+        ...door,
+        ip_address: door.ip_address as string | null,
+        access_count: door.access_count || 0,
+        status: door.status as 'locked' | 'unlocked' | 'maintenance'
+      }));
+      
+      setDoors(transformedData);
     } catch (error) {
       console.error('Error loading doors:', error);
       toast({
@@ -74,7 +82,14 @@ const DoorManagement = () => {
 
       if (error) throw error;
 
-      setDoors(prev => [...prev, data]);
+      const transformedData: Door = {
+        ...data,
+        ip_address: data.ip_address as string | null,
+        access_count: data.access_count || 0,
+        status: data.status as 'locked' | 'unlocked' | 'maintenance'
+      };
+
+      setDoors(prev => [...prev, transformedData]);
       setNewDoor({ name: '', location: '', ip_address: '' });
       setIsCreateDialogOpen(false);
       
@@ -117,8 +132,15 @@ const DoorManagement = () => {
 
       if (error) throw error;
 
+      const transformedData: Door = {
+        ...data,
+        ip_address: data.ip_address as string | null,
+        access_count: data.access_count || 0,
+        status: data.status as 'locked' | 'unlocked' | 'maintenance'
+      };
+
       setDoors(prev => prev.map(door => 
-        door.id === editingDoor.id ? data : door
+        door.id === editingDoor.id ? transformedData : door
       ));
       
       setEditingDoor(null);
@@ -154,8 +176,15 @@ const DoorManagement = () => {
 
       if (error) throw error;
 
+      const transformedData: Door = {
+        ...data,
+        ip_address: data.ip_address as string | null,
+        access_count: data.access_count || 0,
+        status: data.status as 'locked' | 'unlocked' | 'maintenance'
+      };
+
       setDoors(prev => prev.map(d => 
-        d.id === door.id ? data : d
+        d.id === door.id ? transformedData : d
       ));
 
       toast({
@@ -270,7 +299,7 @@ const DoorManagement = () => {
                         </div>
                       )}
                       <span className="text-sm text-gray-500">
-                        {door.access_count} accesses
+                        {door.access_count || 0} accesses
                       </span>
                     </div>
                   </div>

@@ -37,7 +37,14 @@ const UserManagement = () => {
         .order('name');
 
       if (error) throw error;
-      setUsers(data || []);
+      
+      // Transform the data to match our User interface
+      const transformedData: UserType[] = (data || []).map(user => ({
+        ...user,
+        role: user.role as 'admin' | 'staff'
+      }));
+      
+      setUsers(transformedData);
     } catch (error) {
       console.error('Error loading users:', error);
       toast({
@@ -80,7 +87,12 @@ const UserManagement = () => {
 
       if (error) throw error;
 
-      setUsers(prev => [...prev, data]);
+      const transformedData: UserType = {
+        ...data,
+        role: data.role as 'admin' | 'staff'
+      };
+
+      setUsers(prev => [...prev, transformedData]);
       setNewUser({ username: '', email: '', name: '', role: 'staff', pin: '' });
       setIsCreateDialogOpen(false);
       
@@ -90,7 +102,7 @@ const UserManagement = () => {
       });
 
       // Send PIN by email
-      sendWelcomeEmail(data);
+      sendWelcomeEmail(transformedData);
     } catch (error) {
       console.error('Error creating user:', error);
       toast({
@@ -117,8 +129,13 @@ const UserManagement = () => {
 
       if (error) throw error;
 
+      const transformedData: UserType = {
+        ...data,
+        role: data.role as 'admin' | 'staff'
+      };
+
       setUsers(prev => prev.map(u => 
-        u.id === user.id ? data : u
+        u.id === user.id ? transformedData : u
       ));
       
       toast({
