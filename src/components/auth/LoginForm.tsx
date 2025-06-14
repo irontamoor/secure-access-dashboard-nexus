@@ -7,16 +7,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Lock, User } from 'lucide-react';
 
-interface User {
-  id: string;
-  username: string;
-  role: 'admin' | 'staff';
-  name: string;
-  pin?: string;
-}
-
 interface LoginFormProps {
-  onLogin: (user: User) => void;
+  onLogin: (username: string, password: string) => Promise<void>;
 }
 
 const LoginForm = ({ onLogin }: LoginFormProps) => {
@@ -25,32 +17,22 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Mock users for demo - in real app, this would be from database
-  const mockUsers: User[] = [
-    { id: '1', username: 'admin', role: 'admin', name: 'Administrator', pin: '1234' },
-    { id: '2', username: 'staff1', role: 'staff', name: 'John Doe', pin: '5678' },
-    { id: '3', username: 'staff2', role: 'staff', name: 'Jane Smith', pin: '9876' },
-  ];
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      const user = mockUsers.find(u => u.username === username);
-      
-      if (user && password === 'password') { // Mock password check
-        onLogin(user);
-      } else {
-        toast({
-          title: "Login Failed",
-          description: "Invalid username or password",
-          variant: "destructive",
-        });
-      }
+    try {
+      await onLogin(username, password);
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login Failed",
+        description: "An error occurred during login",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -85,13 +67,13 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">PIN / Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter password"
+                  placeholder="Enter PIN or password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
@@ -104,10 +86,9 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
             </Button>
           </form>
           <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sm text-blue-800">
-            <p className="font-semibold mb-2">Demo Credentials:</p>
-            <p>Admin: admin / password</p>
-            <p>Staff: staff1 / password</p>
-            <p>Staff: staff2 / password</p>
+            <p className="font-semibold mb-2">Local Admin Access:</p>
+            <p>Username: localadmin</p>
+            <p>Password: admin123</p>
           </div>
         </CardContent>
       </Card>

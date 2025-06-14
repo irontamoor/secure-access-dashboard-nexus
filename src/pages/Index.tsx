@@ -31,7 +31,7 @@ const Index = () => {
       // First try local admin login
       const { data: settings } = await supabase
         .from('system_settings')
-        .select('setting_value')
+        .select('setting_key, setting_value')
         .in('setting_key', ['local_admin_enabled', 'local_admin_username', 'local_admin_password']);
 
       const localAdminEnabled = settings?.find(s => s.setting_key === 'local_admin_enabled')?.setting_value === 'true';
@@ -82,8 +82,14 @@ const Index = () => {
         .update({ last_access: new Date().toISOString() })
         .eq('id', user.id);
 
-      setCurrentUser(user);
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      // Type assertion for the role field
+      const typedUser: User = {
+        ...user,
+        role: user.role as 'admin' | 'staff'
+      };
+
+      setCurrentUser(typedUser);
+      localStorage.setItem('currentUser', JSON.stringify(typedUser));
       toast({
         title: "Login Successful",
         description: `Welcome back, ${user.name}!`,
