@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -154,7 +153,8 @@ export default function SystemAdminSettings() {
         </p>
       </section>
 
-      <section className="bg-white rounded-lg border shadow-sm p-6 mb-3">
+      {/* LDAP Database Integration */}
+      <div className="bg-white/60 backdrop-blur-sm shadow-lg rounded-lg p-6 space-y-2">
         <h3 className="text-xl font-semibold text-indigo-900 mb-1">LDAP Database Integration</h3>
         <p className="mb-5 text-gray-500">Configure LDAP and view sync history.</p>
         <LdapConfigForm
@@ -165,14 +165,16 @@ export default function SystemAdminSettings() {
           triggerLdapSync={triggerLdapSync}
           isSyncing={isSyncing}
         />
-      </section>
+      </div>
 
-      <section className="bg-white rounded-lg border shadow-sm p-6 mb-3">
+      {/* LDAP Sync History */}
+      <div className="bg-white/60 backdrop-blur-sm shadow-lg rounded-lg p-6 space-y-2">
         <h3 className="text-xl font-semibold text-indigo-900 mb-2">LDAP Sync History</h3>
         <SyncHistoryCard syncLogs={syncLogs} />
-      </section>
+      </div>
 
-      <section className="bg-white rounded-lg border shadow-sm p-6 mb-3">
+      {/* System Administrator Email */}
+      <div className="bg-white/60 backdrop-blur-sm shadow-lg rounded-lg p-6 space-y-2">
         <h3 className="text-xl font-semibold text-indigo-900 mb-2">System Administrator Email</h3>
         <p className="text-gray-500 mb-2">
           This address will receive error notifications from the system.
@@ -189,9 +191,10 @@ export default function SystemAdminSettings() {
           </div>
           <Button onClick={handleAdminEmailSave}>Save</Button>
         </div>
-      </section>
+      </div>
 
-      <section className="bg-white rounded-lg border shadow-sm p-6">
+      {/* Error Alert Level */}
+      <div className="bg-white/60 backdrop-blur-sm shadow-lg rounded-lg p-6 space-y-2">
         <h3 className="text-xl font-semibold text-indigo-900 mb-2">Error Alert Level</h3>
         <p className="text-gray-500 mb-2">
           Choose the error severity for which email alerts will be sent to the system administrator.
@@ -210,7 +213,7 @@ export default function SystemAdminSettings() {
           </select>
           <Button onClick={handleAlertLevelSave}>Save</Button>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
