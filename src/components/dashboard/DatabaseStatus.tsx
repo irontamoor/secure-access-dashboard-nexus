@@ -19,15 +19,19 @@ export default function DatabaseStatus() {
 
   useEffect(() => {
     // Database connection check
-    setDbStatus("checking");
-    supabase
-      .from('users')
-      .select('id', { count: 'exact', head: true })
-      .then(({ error }) => {
+    const checkDbConnection = async () => {
+      setDbStatus("checking");
+      try {
+        const { error } = await supabase
+          .from('users')
+          .select('id', { count: 'exact', head: true });
         if (!error) setDbStatus("connected");
         else setDbStatus("not_connected");
-      })
-      .catch(() => setDbStatus("not_connected"));
+      } catch {
+        setDbStatus("not_connected");
+      }
+    };
+    checkDbConnection();
 
     // 1. Get user count
     supabase.from('users').select('id', { count: 'exact', head: true }).then(({ count }) => {
@@ -224,3 +228,4 @@ export default function DatabaseStatus() {
     </div>
   );
 }
+
