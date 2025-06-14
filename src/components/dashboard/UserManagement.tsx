@@ -316,9 +316,8 @@ const UserManagement = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-          <p className="text-gray-600">Create and manage user accounts with automatic email notifications</p>
+          <p className="text-gray-600">Create and manage user accounts with automatic email notifications and PIN settings</p>
         </div>
-
         <CreateUserDialog
           open={isCreateDialogOpen}
           setOpen={setIsCreateDialogOpen}
