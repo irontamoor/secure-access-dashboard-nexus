@@ -31,7 +31,7 @@ const DoorPermissions = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [doorGroups, setDoorGroups] = useState<DoorGroup[]>([]);
-  const [permissionTarget, setPermissionTarget] = useState<'door' | 'door_group' | 'all_doors'>('door');
+  const [permissionTarget, setPermissionTarget] = useState<'door' | 'door_group'>('door');
 
   useEffect(() => {
     loadData();
@@ -91,20 +91,18 @@ const DoorPermissions = () => {
       notes: newPermission.notes || null
     };
 
-    if (permissionTarget === 'all_doors') {
-      insertObj = { ...insertObj, all_doors: true, door_id: null, door_group_id: null };
-    } else if (permissionTarget === 'door_group') {
+    if (permissionTarget === 'door_group') {
       if (!newPermission.door_id) {
         toast({ title: "Error", description: "Select a group", variant: "destructive" });
         return;
       }
-      insertObj = { ...insertObj, all_doors: false, door_group_id: newPermission.door_id, door_id: null };
+      insertObj = { ...insertObj, door_group_id: newPermission.door_id, door_id: null, all_doors: false };
     } else if (permissionTarget === 'door') {
       if (!newPermission.door_id) {
         toast({ title: "Error", description: "Select a door", variant: "destructive" });
         return;
       }
-      insertObj = { ...insertObj, all_doors: false, door_id: newPermission.door_id, door_group_id: null };
+      insertObj = { ...insertObj, door_id: newPermission.door_id, door_group_id: null, all_doors: false };
     }
 
     try {
@@ -167,7 +165,6 @@ const DoorPermissions = () => {
 
   // For each permission, find the target type and label
   const getPermissionTarget = (perm: DoorPermission) => {
-    if (perm.all_doors) return { type: 'all_doors', label: 'All Doors' };
     if (perm.door_group_id) {
       const group = doorGroups.find(g => g.id === perm.door_group_id);
       return { type: 'door_group', label: group ? `Group: ${group.name}` : "Group (unknown)" };
@@ -198,7 +195,7 @@ const DoorPermissions = () => {
             <DialogHeader>
               <DialogTitle>Grant Door Access</DialogTitle>
               <DialogDescription>
-                Grant a user access to a specific door, door group or all doors.
+                Grant a user access to a specific door or door group.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -220,13 +217,24 @@ const DoorPermissions = () => {
               <div>
                 <Label>Target</Label>
                 <div className="flex gap-2">
-                  <Button variant={permissionTarget === 'all_doors' ? "default" : "outline"} size="sm" onClick={() => setPermissionTarget('all_doors')}>All Doors</Button>
-                  <Button variant={permissionTarget === 'door_group' ? "default" : "outline"} size="sm" onClick={() => setPermissionTarget('door_group')}>Group</Button>
-                  <Button variant={permissionTarget === 'door' ? "default" : "outline"} size="sm" onClick={() => setPermissionTarget('door')}>Door</Button>
+                  <Button
+                    variant={permissionTarget === 'door_group' ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setPermissionTarget('door_group')}
+                  >
+                    Group
+                  </Button>
+                  <Button
+                    variant={permissionTarget === 'door' ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setPermissionTarget('door')}
+                  >
+                    Door
+                  </Button>
                 </div>
               </div>
 
-              {/* Show select for door group or door */}
+              {/* Only show group or door selection, never all doors */}
               {permissionTarget === 'door_group' && (
                 <div>
                   <Label htmlFor="doorGroup">Door Group</Label>
@@ -311,7 +319,7 @@ const DoorPermissions = () => {
                       </div>
                       <div className="flex items-center space-x-2 mt-1">
                         <DoorOpen className="w-4 h-4 text-gray-500" />
-                        <span>{target.type === 'door' && doors.find(d => d.id === permission.door_id) ? `${doors.find(d => d.id === permission.door_id)?.name} - ${doors.find(d => d.id === permission.door_id)?.location}` : "Unknown door"}</span>
+                        <span>{target.type === 'door' && doors.find(d => d.id === permission.door_id) ? `${doors.find(d => d.id === permission.door_id)?.name} - ${doors.find(d => d.id === permission.door_id)?.location}` : target.type === 'door_group' ? (doorGroups.find(g => g.id === permission.door_group_id)?.name || "Unknown group") : "Unknown"}</span>
                       </div>
                       <div className="flex items-center space-x-2 mt-1">
                         <Badge variant="outline">{target.label}</Badge>
