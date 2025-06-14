@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -31,7 +30,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Processing notification request:', { type, user_id, door_id });
 
-    // Get email settings
+    // Get email settings, now including email_cc_address
     const { data: settings, error: settingsError } = await supabase
       .from('system_settings')
       .select('setting_key, setting_value')
@@ -44,7 +43,8 @@ const handler = async (req: Request): Promise<Response> => {
         'smtp_username',
         'smtp_password',
         'smtp_from_email',
-        'smtp_from_name'
+        'smtp_from_name',
+        'email_cc_address'
       ]);
 
     if (settingsError) {
@@ -83,6 +83,9 @@ const handler = async (req: Request): Promise<Response> => {
     let emailSubject = '';
     let emailBody = '';
     let recipientEmail = test_email || settingsMap.smtp_from_email;
+    // Add CC address (if present and valid)
+    const ccEmail = (settingsMap.email_cc_address || '').trim();
+    const ccArray = ccEmail && ccEmail.length > 2 ? [ccEmail] : [];
 
     if (type === 'failed_access') {
       // Get user and door details
@@ -158,9 +161,10 @@ Door Access System`;
     }
 
     // In a real implementation, you would use the SMTP settings to send the email
-    // For now, we'll simulate the email sending
+    // For now, we'll simulate the email sending and log the CC
     console.log('Email would be sent:', {
       to: recipientEmail,
+      cc: ccArray,
       subject: emailSubject,
       body: emailBody,
       smtp: {
@@ -174,7 +178,8 @@ Door Access System`;
       success: true, 
       message: 'Notification email sent successfully',
       type,
-      recipient: recipientEmail
+      recipient: recipientEmail,
+      cc: ccArray
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json', ...corsHeaders },

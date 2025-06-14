@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -87,6 +86,22 @@ const SmtpSettingsCard = ({ settings, setSettings, updateSetting, testSMTPConnec
           />
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="email_cc_address">CC All Emails To</Label>
+          <Input
+            id="email_cc_address"
+            type="email"
+            value={settings.email_cc_address || ""}
+            onChange={e => setSettings(prev => ({ ...prev, email_cc_address: e.target.value }))}
+            placeholder="it-admin@yourcompany.com"
+            autoComplete="off"
+          />
+        </div>
+        <div>
+          {/* Intentionally left blank for layout parity */}
+        </div>
+      </div>
       <div className="flex items-center space-x-2">
         <Switch
           id="smtp_use_tls"
@@ -98,7 +113,7 @@ const SmtpSettingsCard = ({ settings, setSettings, updateSetting, testSMTPConnec
       <div className="flex space-x-2">
         <Button onClick={() => {
           Object.keys(settings).forEach(key => {
-            if (key.startsWith("smtp_")) updateSetting(key, settings[key]);
+            if (key.startsWith("smtp_") || key === "email_cc_address") updateSetting(key, settings[key]);
           });
         }}>
           Save SMTP Settings
