@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { UserPlus, Settings, User, Mail } from 'lucide-react';
 import type { User as UserType } from '@/types/database';
+import UserCard from './user-management/UserCard';
+import CreateUserDialog from './user-management/CreateUserDialog';
 
 const UserManagement = () => {
   const { toast } = useToast();
@@ -62,8 +63,20 @@ const UserManagement = () => {
     setNewUser(prev => ({ ...prev, pin }));
   };
 
-  const createUser = async () => {
-    if (!newUser.username || !newUser.email || !newUser.name || !newUser.pin) {
+  const handleCreateUser = async ({
+    username,
+    email,
+    name,
+    role,
+    pin
+  }: {
+    username: string;
+    email: string;
+    name: string;
+    role: 'admin' | 'staff';
+    pin: string;
+  }) => {
+    if (!username || !email || !name || !pin) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -76,11 +89,11 @@ const UserManagement = () => {
       const { data, error } = await supabase
         .from('users')
         .insert([{
-          username: newUser.username,
-          email: newUser.email,
-          name: newUser.name,
-          role: newUser.role,
-          pin: newUser.pin
+          username: username,
+          email: email,
+          name: name,
+          role: role,
+          pin: pin
         }])
         .select()
         .single();
@@ -182,133 +195,21 @@ const UserManagement = () => {
           <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
           <p className="text-gray-600">Create and manage user accounts with automatic email notifications</p>
         </div>
-        
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Create User
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
-              <DialogDescription>
-                Add a new user to the access control system
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  value={newUser.username}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
-                  placeholder="Enter username"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="Enter email address"
-                />
-              </div>
-              <div>
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Enter full name"
-                />
-              </div>
-              <div>
-                <Label htmlFor="role">Role</Label>
-                <Select value={newUser.role} onValueChange={(value: 'admin' | 'staff') => setNewUser(prev => ({ ...prev, role: value }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="staff">Staff</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="pin">4-Digit PIN</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    id="pin"
-                    value={newUser.pin}
-                    onChange={(e) => setNewUser(prev => ({ ...prev, pin: e.target.value.slice(0, 4) }))}
-                    placeholder="1234"
-                    maxLength={4}
-                  />
-                  <Button type="button" onClick={generatePin} variant="outline">
-                    Generate
-                  </Button>
-                </div>
-              </div>
-              <Button onClick={createUser} className="w-full">
-                Create User & Send Email
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
 
+        <CreateUserDialog
+          open={isCreateDialogOpen}
+          setOpen={setIsCreateDialogOpen}
+          onCreate={handleCreateUser}
+        />
+      </div>
       <div className="grid gap-4">
         {users.map((user) => (
-          <Card key={user.id} className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
-                    <p className="text-gray-600">@{user.username}</p>
-                    <p className="text-gray-600">{user.email}</p>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <div className="text-right text-sm text-gray-500">
-                    <p>Created: {new Date(user.created_at).toLocaleDateString()}</p>
-                    {user.last_access && <p>Last access: {new Date(user.last_access).toLocaleDateString()}</p>}
-                  </div>
-                  <Button
-                    onClick={() => resetUserPin(user)}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center space-x-1"
-                  >
-                    <Settings className="w-4 h-4" />
-                    <span>Reset PIN</span>
-                  </Button>
-                  <Button
-                    onClick={() => sendPinByEmail(user, user.pin)}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center space-x-1"
-                  >
-                    <Mail className="w-4 h-4" />
-                    <span>Email PIN</span>
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <UserCard
+            key={user.id}
+            user={user}
+            onResetPin={resetUserPin}
+            onEmailPin={user => sendPinByEmail(user, user.pin)}
+          />
         ))}
       </div>
     </div>
