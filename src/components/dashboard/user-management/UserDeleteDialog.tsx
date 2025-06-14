@@ -1,7 +1,7 @@
 
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { delete as DeleteIcon } from "lucide-react";
+import { Delete as DeleteIcon } from "lucide-react";
 
 interface UserDeleteDialogProps {
   onDelete: () => void;

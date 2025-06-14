@@ -1,10 +1,10 @@
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { User, Settings, Mail, Ban, Undo2, Key } from 'lucide-react';
+import { User, Settings, Mail, Ban, Undo2, Key, Delete as DeleteIcon } from 'lucide-react';
 import type { User as UserType } from '@/types/database';
 import UserDeleteDialog from './UserDeleteDialog';
-import { delete as DeleteIcon } from "lucide-react";
 
 interface UserCardProps {
   user: UserType;
