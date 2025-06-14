@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Types
 interface DoorCounts {
   [location: string]: number;
 }
@@ -14,8 +15,20 @@ export default function DatabaseStatus() {
   const [swipesByLocation, setSwipesByLocation] = useState<DoorCounts>({});
   const [ldapStatus, setLdapStatus] = useState<{ sync_time: string; status: string } | null>(null);
   const [smtpStatus, setSmtpStatus] = useState<{ connected: boolean } | null>(null);
+  const [dbStatus, setDbStatus] = useState<"checking" | "connected" | "not_connected">("checking");
 
   useEffect(() => {
+    // Database connection check
+    setDbStatus("checking");
+    supabase
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .then(({ error }) => {
+        if (!error) setDbStatus("connected");
+        else setDbStatus("not_connected");
+      })
+      .catch(() => setDbStatus("not_connected"));
+
     // 1. Get user count
     supabase.from('users').select('id', { count: 'exact', head: true }).then(({ count }) => {
       setUserCount(count ?? 0);
@@ -71,7 +84,7 @@ export default function DatabaseStatus() {
         }
       });
 
-    // Fetch SMTP status (check for SMTP is connected by checking config presence)
+    // Fetch SMTP status (check for SMTP config presence)
     supabase
       .from('system_settings')
       .select('*')
@@ -89,7 +102,7 @@ export default function DatabaseStatus() {
     <div>
       <h2 className="text-xl font-bold text-gray-900 mb-4">System Overview</h2>
       {/* Core system stats grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-8">
         {/* User count */}
         <div className="bg-white/80 rounded-xl shadow p-6 flex flex-col items-center">
           <div className="font-semibold text-gray-700 mb-1">Total Users</div>
@@ -105,12 +118,25 @@ export default function DatabaseStatus() {
           <div className="font-semibold text-gray-700 mb-1">Swipes (24h)</div>
           <div className="text-3xl font-bold text-purple-700">{swipeCount !== null ? swipeCount : '—'}</div>
         </div>
-        {/* Failed users */}
+        {/* Failed/disabled users */}
         <div className="bg-white/80 rounded-xl shadow p-6 flex flex-col items-center">
           <div className="font-semibold text-gray-700 mb-1">Disabled Users</div>
           <div className="text-3xl font-bold text-red-700">{failedUsers.length}</div>
         </div>
+        {/* Database connection */}
+        <div className="bg-white/80 rounded-xl shadow p-6 flex flex-col items-center">
+          <div className="font-semibold text-gray-700 mb-1">Database Connection</div>
+          {dbStatus === "checking" ? (
+              <div className="text-gray-500 text-lg font-mono">Checking...</div>
+            ) : dbStatus === "connected" ? (
+              <div className="text-green-700 text-xl font-bold">Connected</div>
+            ) : (
+              <div className="text-red-700 text-xl font-bold">Not Connected</div>
+            )
+          }
+        </div>
       </div>
+
       {/* Breakdown/swipe by location */}
       <div className="mb-8">
         <div className="font-semibold text-gray-700 mb-2">Swipes by Area (24h)</div>
