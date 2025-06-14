@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { User, Key, Mail, Ban, Undo2 } from 'lucide-react';
@@ -48,7 +47,7 @@ const AdminPinManagement = ({ users, resetUserPin, sendPinByEmail }: AdminPinMan
                   <span>Reset PIN</span>
                 </Button>
                 <Button
-                  onClick={() => sendPinByEmail(user, user.pin!)}
+                  onClick={() => sendPinByEmail(user, "••••")}
                   variant="outline"
                   size="sm"
                   className="flex items-center space-x-1"
@@ -58,11 +57,7 @@ const AdminPinManagement = ({ users, resetUserPin, sendPinByEmail }: AdminPinMan
                   <span>Email PIN</span>
                 </Button>
                 <Button
-                  onClick={async () => {
-                    // Toggle pin_disabled. This is only for UI; real logic should be unified.
-                    // In practice, AdminPinManagement should receive a callback to update pin_disabled.
-                    // For now we just fake it disabled={user.pin_disabled}
-                  }}
+                  onClick={async () => {}}
                   disabled
                   variant={user.pin_disabled ? "outline" : "secondary"}
                   size="sm"

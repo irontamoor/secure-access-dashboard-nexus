@@ -91,7 +91,9 @@ const UserCard = ({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600">PIN:</span>
-                  <span className="font-mono text-green-700">{user.pin || "—"}</span>
+                  {/* Always display dots, never show PIN */}
+                  <span className="font-mono text-green-700">••••</span>
+                  {/* Remove the show PIN, but keep management buttons */}
                   {!user.disabled && !user.pin_disabled && (
                     <>
                       <Button
@@ -198,3 +200,5 @@ const UserCard = ({
 };
 
 export default UserCard;
+
+// NOTE: This file is 201 lines. Please consider refactoring for maintainability.

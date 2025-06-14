@@ -197,11 +197,11 @@ const UserManagement = () => {
       
       toast({
         title: "PIN Reset",
-        description: `New PIN for ${user.name}: ${newPin}`,
+        description: `A new PIN has been set for ${user.name}. The PIN is not shown for security reasons.`,
       });
 
-      // Send PIN by email
-      sendPinByEmail(user, newPin);
+      // Send PIN by email (masked in UI)
+      sendPinByEmail(user, "••••");
     } catch (error) {
       console.error('Error resetting PIN:', error);
       toast({
@@ -280,7 +280,7 @@ const UserManagement = () => {
     // This would call a Supabase edge function to send PIN
     toast({
       title: "PIN Email Sent",
-      description: `New PIN sent to ${user.email}`,
+      description: `A new PIN has been sent to ${user.email}.`,
     });
   };
 
