@@ -85,11 +85,7 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
               {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sm text-blue-800">
-            <p className="font-semibold mb-2">Local Admin Access:</p>
-            <p>Username: localadmin</p>
-            <p>Password: admin123</p>
-          </div>
+          {/* Removed Local Admin Access block */}
         </CardContent>
       </Card>
     </div>
@@ -97,3 +93,4 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
 };
 
 export default LoginForm;
+

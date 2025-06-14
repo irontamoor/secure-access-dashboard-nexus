@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import LoginForm from '@/components/auth/LoginForm';
 import AdminDashboard from '@/components/dashboard/AdminDashboard';
@@ -27,38 +28,7 @@ const Index = () => {
 
   const handleLogin = async (username: string, password: string) => {
     try {
-      // First try local admin login
-      const { data: settings } = await supabase
-        .from('system_settings')
-        .select('setting_key, setting_value')
-        .in('setting_key', ['local_admin_enabled', 'local_admin_username', 'local_admin_password']);
-
-      const localAdminEnabled = settings?.find(s => s.setting_key === 'local_admin_enabled')?.setting_value === 'true';
-      const localAdminUsername = settings?.find(s => s.setting_key === 'local_admin_username')?.setting_value;
-      const localAdminPassword = settings?.find(s => s.setting_key === 'local_admin_password')?.setting_value;
-
-      if (localAdminEnabled && username === localAdminUsername && password === localAdminPassword) {
-        const localAdminUser: User = {
-          id: 'local-admin',
-          username: 'localadmin',
-          email: 'admin@local',
-          name: 'Local Administrator',
-          role: 'admin',
-          pin: '0000',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        
-        setCurrentUser(localAdminUser);
-        localStorage.setItem('currentUser', JSON.stringify(localAdminUser));
-        toast({
-          title: "Login Successful",
-          description: `Welcome, Local Administrator!`,
-        });
-        return;
-      }
-
-      // Try database login
+      // Only allow database (users table) login, no more localadmin flow
       const { data: user, error } = await supabase
         .from('users')
         .select('*')
@@ -97,7 +67,7 @@ const Index = () => {
       console.error('Login error:', error);
       toast({
         title: "Login Error",
-        description: "An error occurred during login. Using local admin if available.",
+        description: "An error occurred during login. Please try again.",
         variant: "destructive",
       });
     }
@@ -137,3 +107,4 @@ const Index = () => {
 };
 
 export default Index;
+
