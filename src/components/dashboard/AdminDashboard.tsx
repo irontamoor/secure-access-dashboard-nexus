@@ -1,14 +1,17 @@
 
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DashboardHeader from './DashboardHeader';
+import DatabaseStatus from './DatabaseStatus';
 import UserManagement from './UserManagement';
 import DoorManagement from './DoorManagement';
 import ActivityLogs from './ActivityLogs';
-import PinManagement from './PinManagement';
 import SystemSettings from './SystemSettings';
-import DatabaseStatus from './DatabaseStatus';
-import { Users, Settings, Calendar, Key, Database, Mail } from 'lucide-react';
+import DatabaseSettings from './DatabaseSettings';
+import DoorPermissions from './DoorPermissions';
+import EmailNotifications from './EmailNotifications';
+import PinManagement from './PinManagement';
 import type { User } from '@/types/database';
 
 interface AdminDashboardProps {
@@ -23,47 +26,22 @@ const AdminDashboard = ({ user, onLogout }: AdminDashboardProps) => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <DashboardHeader user={user} onLogout={onLogout} />
       
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-2">Manage doors, users, and access control</p>
-        </div>
-
+      <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 bg-white/60 backdrop-blur-sm">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="doors" className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              Doors
-            </TabsTrigger>
-            <TabsTrigger value="pins" className="flex items-center gap-2">
-              <Key className="w-4 h-4" />
-              PINs
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Logs
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Mail className="w-4 h-4" />
-              Settings
-            </TabsTrigger>
-            <TabsTrigger value="database" className="flex items-center gap-2">
-              <Database className="w-4 h-4" />
-              Database
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-9 bg-white/80 backdrop-blur-sm">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="doors">Doors</TabsTrigger>
+            <TabsTrigger value="permissions">Permissions</TabsTrigger>
+            <TabsTrigger value="logs">Activity</TabsTrigger>
+            <TabsTrigger value="pins">PINs</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="database">Database</TabsTrigger>
+            <TabsTrigger value="system">System</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
             <DatabaseStatus />
-            <ActivityLogs isAdmin={true} userId={user.id} />
           </TabsContent>
 
           <TabsContent value="users">
@@ -74,23 +52,31 @@ const AdminDashboard = ({ user, onLogout }: AdminDashboardProps) => {
             <DoorManagement />
           </TabsContent>
 
-          <TabsContent value="pins">
-            <PinManagement isAdmin={true} />
+          <TabsContent value="permissions">
+            <DoorPermissions />
           </TabsContent>
 
           <TabsContent value="logs">
-            <ActivityLogs isAdmin={true} userId={user.id} />
+            <ActivityLogs />
           </TabsContent>
 
-          <TabsContent value="settings">
-            <SystemSettings />
+          <TabsContent value="pins">
+            <PinManagement />
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <EmailNotifications />
           </TabsContent>
 
           <TabsContent value="database">
-            <DatabaseStatus />
+            <DatabaseSettings />
+          </TabsContent>
+
+          <TabsContent value="system">
+            <SystemSettings />
           </TabsContent>
         </Tabs>
-      </div>
+      </main>
     </div>
   );
 };

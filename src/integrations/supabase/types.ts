@@ -57,6 +57,61 @@ export type Database = {
           },
         ]
       }
+      door_permissions: {
+        Row: {
+          access_granted: boolean
+          door_id: string | null
+          expires_at: string | null
+          granted_at: string
+          granted_by: string | null
+          id: string
+          notes: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_granted?: boolean
+          door_id?: string | null
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          notes?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_granted?: boolean
+          door_id?: string | null
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          notes?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "door_permissions_door_id_fkey"
+            columns: ["door_id"]
+            isOneToOne: false
+            referencedRelation: "doors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "door_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "door_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doors: {
         Row: {
           access_count: number | null
@@ -90,6 +145,36 @@ export type Database = {
           name?: string
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      ldap_sync_log: {
+        Row: {
+          error_details: string | null
+          errors_count: number | null
+          id: string
+          sync_completed_at: string | null
+          sync_started_at: string
+          sync_status: string
+          users_synced: number | null
+        }
+        Insert: {
+          error_details?: string | null
+          errors_count?: number | null
+          id?: string
+          sync_completed_at?: string | null
+          sync_started_at?: string
+          sync_status?: string
+          users_synced?: number | null
+        }
+        Update: {
+          error_details?: string | null
+          errors_count?: number | null
+          id?: string
+          sync_completed_at?: string | null
+          sync_started_at?: string
+          sync_status?: string
+          users_synced?: number | null
         }
         Relationships: []
       }
@@ -137,6 +222,9 @@ export type Database = {
           email: string
           id: string
           last_access: string | null
+          last_door_entry: string | null
+          last_entry_time: string | null
+          ldap_dn: string | null
           name: string
           pin: string
           role: string
@@ -148,6 +236,9 @@ export type Database = {
           email: string
           id?: string
           last_access?: string | null
+          last_door_entry?: string | null
+          last_entry_time?: string | null
+          ldap_dn?: string | null
           name: string
           pin: string
           role: string
@@ -159,13 +250,24 @@ export type Database = {
           email?: string
           id?: string
           last_access?: string | null
+          last_door_entry?: string | null
+          last_entry_time?: string | null
+          ldap_dn?: string | null
           name?: string
           pin?: string
           role?: string
           updated_at?: string
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "users_last_door_entry_fkey"
+            columns: ["last_door_entry"]
+            isOneToOne: false
+            referencedRelation: "doors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

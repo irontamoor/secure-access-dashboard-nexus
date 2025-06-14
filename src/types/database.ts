@@ -9,6 +9,9 @@ export interface User {
   created_at: string;
   updated_at: string;
   last_access?: string | null;
+  ldap_dn?: string | null;
+  last_door_entry?: string | null;
+  last_entry_time?: string | null;
 }
 
 export interface Door {
@@ -42,4 +45,25 @@ export interface SystemSetting {
   description?: string | null;
   updated_at: string;
   updated_by?: string | null;
+}
+
+export interface DoorPermission {
+  id: string;
+  user_id: string;
+  door_id: string;
+  access_granted: boolean;
+  granted_by?: string | null;
+  granted_at: string;
+  expires_at?: string | null;
+  notes?: string | null;
+}
+
+export interface LdapSyncLog {
+  id: string;
+  sync_started_at: string;
+  sync_completed_at?: string | null;
+  users_synced?: number | null;
+  errors_count?: number | null;
+  sync_status: 'running' | 'completed' | 'failed';
+  error_details?: string | null;
 }
