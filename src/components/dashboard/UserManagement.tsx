@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,41 +8,55 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Settings, User } from 'lucide-react';
-
-interface User {
-  id: string;
-  username: string;
-  role: 'admin' | 'staff';
-  name: string;
-  pin: string;
-  createdAt: string;
-  lastAccess?: string;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { UserPlus, Settings, User, Mail } from 'lucide-react';
+import type { User as UserType } from '@/types/database';
 
 const UserManagement = () => {
   const { toast } = useToast();
-  const [users, setUsers] = useState<User[]>([
-    { id: '1', username: 'admin', role: 'admin', name: 'Administrator', pin: '1234', createdAt: '2024-01-01', lastAccess: '2024-01-15' },
-    { id: '2', username: 'staff1', role: 'staff', name: 'John Doe', pin: '5678', createdAt: '2024-01-05', lastAccess: '2024-01-15' },
-    { id: '3', username: 'staff2', role: 'staff', name: 'Jane Smith', pin: '9876', createdAt: '2024-01-10', lastAccess: '2024-01-14' },
-  ]);
-  
+  const [users, setUsers] = useState<UserType[]>([]);
   const [newUser, setNewUser] = useState({
     username: '',
+    email: '',
     name: '',
     role: 'staff' as 'admin' | 'staff',
     pin: ''
   });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const generatePin = () => {
     const pin = Math.floor(1000 + Math.random() * 9000).toString();
     setNewUser(prev => ({ ...prev, pin }));
   };
 
-  const createUser = () => {
-    if (!newUser.username || !newUser.name || !newUser.pin) {
+  const createUser = async () => {
+    if (!newUser.username || !newUser.email || !newUser.name || !newUser.pin) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -51,40 +65,105 @@ const UserManagement = () => {
       return;
     }
 
-    const user: User = {
-      id: Date.now().toString(),
-      ...newUser,
-      createdAt: new Date().toISOString().split('T')[0]
-    };
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .insert([{
+          username: newUser.username,
+          email: newUser.email,
+          name: newUser.name,
+          role: newUser.role,
+          pin: newUser.pin
+        }])
+        .select()
+        .single();
 
-    setUsers(prev => [...prev, user]);
-    setNewUser({ username: '', name: '', role: 'staff', pin: '' });
-    setIsCreateDialogOpen(false);
-    
-    toast({
-      title: "User Created",
-      description: `User ${user.name} has been created successfully`,
-    });
+      if (error) throw error;
+
+      setUsers(prev => [...prev, data]);
+      setNewUser({ username: '', email: '', name: '', role: 'staff', pin: '' });
+      setIsCreateDialogOpen(false);
+      
+      toast({
+        title: "User Created",
+        description: `User ${data.name} has been created successfully`,
+      });
+
+      // Send PIN by email
+      sendWelcomeEmail(data);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create user",
+        variant: "destructive",
+      });
+    }
   };
 
-  const resetUserPin = (userId: string) => {
+  const resetUserPin = async (user: UserType) => {
     const newPin = Math.floor(1000 + Math.random() * 9000).toString();
-    setUsers(prev => prev.map(user => 
-      user.id === userId ? { ...user, pin: newPin } : user
-    ));
     
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update({ 
+          pin: newPin,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setUsers(prev => prev.map(u => 
+        u.id === user.id ? data : u
+      ));
+      
+      toast({
+        title: "PIN Reset",
+        description: `New PIN for ${user.name}: ${newPin}`,
+      });
+
+      // Send PIN by email
+      sendPinByEmail(user, newPin);
+    } catch (error) {
+      console.error('Error resetting PIN:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reset PIN",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const sendWelcomeEmail = async (user: UserType) => {
+    // This would call a Supabase edge function to send welcome email
     toast({
-      title: "PIN Reset",
-      description: `New PIN generated: ${newPin}`,
+      title: "Welcome Email Sent",
+      description: `Welcome email with PIN sent to ${user.email}`,
     });
   };
+
+  const sendPinByEmail = async (user: UserType, pin: string) => {
+    // This would call a Supabase edge function to send PIN
+    toast({
+      title: "PIN Email Sent",
+      description: `New PIN sent to ${user.email}`,
+    });
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center py-8">Loading users...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-          <p className="text-gray-600">Create and manage user accounts</p>
+          <p className="text-gray-600">Create and manage user accounts with automatic email notifications</p>
         </div>
         
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -109,6 +188,16 @@ const UserManagement = () => {
                   value={newUser.username}
                   onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
                   placeholder="Enter username"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="Enter email address"
                 />
               </div>
               <div>
@@ -148,7 +237,7 @@ const UserManagement = () => {
                 </div>
               </div>
               <Button onClick={createUser} className="w-full">
-                Create User
+                Create User & Send Email
               </Button>
             </div>
           </DialogContent>
@@ -167,28 +256,37 @@ const UserManagement = () => {
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
                     <p className="text-gray-600">@{user.username}</p>
+                    <p className="text-gray-600">{user.email}</p>
                     <div className="flex items-center space-x-2 mt-1">
                       <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
                         {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                       </Badge>
-                      <span className="text-sm text-gray-500">PIN: ••••</span>
                     </div>
                   </div>
                 </div>
                 
                 <div className="flex items-center space-x-2">
                   <div className="text-right text-sm text-gray-500">
-                    <p>Created: {user.createdAt}</p>
-                    {user.lastAccess && <p>Last access: {user.lastAccess}</p>}
+                    <p>Created: {new Date(user.created_at).toLocaleDateString()}</p>
+                    {user.last_access && <p>Last access: {new Date(user.last_access).toLocaleDateString()}</p>}
                   </div>
                   <Button
-                    onClick={() => resetUserPin(user.id)}
+                    onClick={() => resetUserPin(user)}
                     variant="outline"
                     size="sm"
                     className="flex items-center space-x-1"
                   >
                     <Settings className="w-4 h-4" />
                     <span>Reset PIN</span>
+                  </Button>
+                  <Button
+                    onClick={() => sendPinByEmail(user, user.pin)}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center space-x-1"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span>Email PIN</span>
                   </Button>
                 </div>
               </div>

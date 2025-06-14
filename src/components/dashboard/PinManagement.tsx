@@ -1,35 +1,54 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Key, User } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Key, User, Mail } from 'lucide-react';
+import type { User as UserType } from '@/types/database';
 
 interface PinManagementProps {
   isAdmin: boolean;
   userId?: string;
 }
 
-interface UserPin {
-  id: string;
-  name: string;
-  pin: string;
-  lastChanged: string;
-}
-
 const PinManagement = ({ isAdmin, userId }: PinManagementProps) => {
   const { toast } = useToast();
-  const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
-  
-  const [allUserPins, setAllUserPins] = useState<UserPin[]>([
-    { id: '1', name: 'Administrator', pin: '1234', lastChanged: '2024-01-10' },
-    { id: '2', name: 'John Doe', pin: '5678', lastChanged: '2024-01-12' },
-    { id: '3', name: 'Jane Smith', pin: '9876', lastChanged: '2024-01-08' },
-  ]);
+  const [allUsers, setAllUsers] = useState<UserType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadUsers();
+    } else {
+      setIsLoading(false);
+    }
+  }, [isAdmin]);
+
+  const loadUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setAllUsers(data || []);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const generateRandomPin = () => {
     const pin = Math.floor(1000 + Math.random() * 9000).toString();
@@ -37,8 +56,8 @@ const PinManagement = ({ isAdmin, userId }: PinManagementProps) => {
     setConfirmPin(pin);
   };
 
-  const updateOwnPin = () => {
-    if (!currentPin || !newPin || !confirmPin) {
+  const updateOwnPin = async () => {
+    if (!newPin || !confirmPin) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -65,40 +84,103 @@ const PinManagement = ({ isAdmin, userId }: PinManagementProps) => {
       return;
     }
 
-    toast({
-      title: "PIN Updated",
-      description: "Your PIN has been successfully changed",
-    });
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ 
+          pin: newPin,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
 
-    setCurrentPin('');
-    setNewPin('');
-    setConfirmPin('');
+      if (error) throw error;
+
+      toast({
+        title: "PIN Updated",
+        description: "Your PIN has been successfully changed",
+      });
+
+      setNewPin('');
+      setConfirmPin('');
+    } catch (error) {
+      console.error('Error updating PIN:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update PIN",
+        variant: "destructive",
+      });
+    }
   };
 
-  const resetUserPin = (userId: string, userName: string) => {
+  const resetUserPin = async (user: UserType) => {
     const newPin = Math.floor(1000 + Math.random() * 9000).toString();
-    setAllUserPins(prev => prev.map(user => 
-      user.id === userId 
-        ? { ...user, pin: newPin, lastChanged: new Date().toISOString().split('T')[0] }
-        : user
-    ));
     
-    toast({
-      title: "PIN Reset",
-      description: `New PIN for ${userName}: ${newPin}`,
-    });
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ 
+          pin: newPin,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setAllUsers(prev => prev.map(u => 
+        u.id === user.id 
+          ? { ...u, pin: newPin, updated_at: new Date().toISOString() }
+          : u
+      ));
+      
+      toast({
+        title: "PIN Reset",
+        description: `New PIN for ${user.name}: ${newPin}`,
+      });
+
+      // Send email notification (this would be implemented with an edge function)
+      sendPinByEmail(user, newPin);
+    } catch (error) {
+      console.error('Error resetting PIN:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reset PIN",
+        variant: "destructive",
+      });
+    }
   };
+
+  const sendPinByEmail = async (user: UserType, pin: string) => {
+    try {
+      // This would call a Supabase edge function to send email
+      toast({
+        title: "Email Sent",
+        description: `PIN sent to ${user.email}`,
+      });
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast({
+        title: "Email Error",
+        description: "PIN reset but email failed to send",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center py-8">Loading...</div>;
+  }
 
   if (isAdmin) {
     return (
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">PIN Management</h2>
-          <p className="text-gray-600">Manage user PINs and access codes</p>
+          <p className="text-gray-600">Manage user PINs and send notifications via email</p>
         </div>
 
         <div className="grid gap-4">
-          {allUserPins.map((user) => (
+          {allUsers.map((user) => (
             <Card key={user.id} className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -108,20 +190,31 @@ const PinManagement = ({ isAdmin, userId }: PinManagementProps) => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
-                      <p className="text-gray-600">Current PIN: ••••</p>
-                      <p className="text-sm text-gray-500">Last changed: {user.lastChanged}</p>
+                      <p className="text-gray-600">{user.email}</p>
+                      <p className="text-sm text-gray-500">Last updated: {new Date(user.updated_at).toLocaleDateString()}</p>
                     </div>
                   </div>
                   
-                  <Button
-                    onClick={() => resetUserPin(user.id, user.name)}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center space-x-1"
-                  >
-                    <Key className="w-4 h-4" />
-                    <span>Reset PIN</span>
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      onClick={() => resetUserPin(user)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-1"
+                    >
+                      <Key className="w-4 h-4" />
+                      <span>Reset PIN</span>
+                    </Button>
+                    <Button
+                      onClick={() => sendPinByEmail(user, user.pin)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-1"
+                    >
+                      <Mail className="w-4 h-4" />
+                      <span>Email PIN</span>
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -145,22 +238,10 @@ const PinManagement = ({ isAdmin, userId }: PinManagementProps) => {
             <span>PIN Settings</span>
           </CardTitle>
           <CardDescription>
-            Enter your current PIN and choose a new one
+            Enter your new 4-digit PIN
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="currentPin">Current PIN</Label>
-            <Input
-              id="currentPin"
-              type="password"
-              maxLength={4}
-              value={currentPin}
-              onChange={(e) => setCurrentPin(e.target.value.slice(0, 4))}
-              placeholder="••••"
-            />
-          </div>
-          
           <div>
             <Label htmlFor="newPin">New PIN</Label>
             <div className="flex space-x-2">

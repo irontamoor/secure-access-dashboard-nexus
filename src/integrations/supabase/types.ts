@@ -9,7 +9,164 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      access_logs: {
+        Row: {
+          access_type: string
+          door_id: string | null
+          id: string
+          ip_address: unknown | null
+          notes: string | null
+          pin_used: string | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          access_type: string
+          door_id?: string | null
+          id?: string
+          ip_address?: unknown | null
+          notes?: string | null
+          pin_used?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          access_type?: string
+          door_id?: string | null
+          id?: string
+          ip_address?: unknown | null
+          notes?: string | null
+          pin_used?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_logs_door_id_fkey"
+            columns: ["door_id"]
+            isOneToOne: false
+            referencedRelation: "doors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doors: {
+        Row: {
+          access_count: number | null
+          created_at: string
+          id: string
+          ip_address: unknown | null
+          last_access: string | null
+          location: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          access_count?: number | null
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          last_access?: string | null
+          location: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          access_count?: number | null
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          last_access?: string | null
+          location?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      system_settings: {
+        Row: {
+          description: string | null
+          id: string
+          setting_key: string
+          setting_type: string
+          setting_value: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_type?: string
+          setting_value?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_type?: string
+          setting_value?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          last_access: string | null
+          name: string
+          pin: string
+          role: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          last_access?: string | null
+          name: string
+          pin: string
+          role: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          last_access?: string | null
+          name?: string
+          pin?: string
+          role?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,96 +7,169 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Lock, Unlock } from 'lucide-react';
-
-interface Door {
-  id: string;
-  name: string;
-  location: string;
-  status: 'locked' | 'unlocked' | 'maintenance';
-  lastAccess?: string;
-  accessCount: number;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { Settings, Lock, Unlock, Network } from 'lucide-react';
+import type { Door } from '@/types/database';
 
 const DoorManagement = () => {
   const { toast } = useToast();
-  const [doors, setDoors] = useState<Door[]>([
-    { id: '1', name: 'Main Entrance', location: 'Ground Floor', status: 'locked', lastAccess: '2024-01-15 14:30', accessCount: 45 },
-    { id: '2', name: 'Server Room', location: 'Basement', status: 'locked', lastAccess: '2024-01-15 09:15', accessCount: 3 },
-    { id: '3', name: 'Office Wing A', location: '1st Floor', status: 'unlocked', lastAccess: '2024-01-15 16:45', accessCount: 28 },
-    { id: '4', name: 'Conference Room', location: '2nd Floor', status: 'locked', lastAccess: '2024-01-15 13:20', accessCount: 12 },
-  ]);
-  
+  const [doors, setDoors] = useState<Door[]>([]);
   const [newDoor, setNewDoor] = useState({
     name: '',
-    location: ''
+    location: '',
+    ip_address: ''
   });
   const [editingDoor, setEditingDoor] = useState<Door | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const createDoor = () => {
+  useEffect(() => {
+    loadDoors();
+  }, []);
+
+  const loadDoors = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('doors')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setDoors(data || []);
+    } catch (error) {
+      console.error('Error loading doors:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load doors",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const createDoor = async () => {
     if (!newDoor.name || !newDoor.location) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please fill in name and location",
         variant: "destructive",
       });
       return;
     }
 
-    const door: Door = {
-      id: Date.now().toString(),
-      ...newDoor,
-      status: 'locked',
-      accessCount: 0
-    };
+    try {
+      const { data, error } = await supabase
+        .from('doors')
+        .insert([{
+          name: newDoor.name,
+          location: newDoor.location,
+          ip_address: newDoor.ip_address || null,
+          status: 'locked',
+          access_count: 0
+        }])
+        .select()
+        .single();
 
-    setDoors(prev => [...prev, door]);
-    setNewDoor({ name: '', location: '' });
-    setIsCreateDialogOpen(false);
-    
-    toast({
-      title: "Door Created",
-      description: `Door "${door.name}" has been added successfully`,
-    });
+      if (error) throw error;
+
+      setDoors(prev => [...prev, data]);
+      setNewDoor({ name: '', location: '', ip_address: '' });
+      setIsCreateDialogOpen(false);
+      
+      toast({
+        title: "Door Created",
+        description: `Door "${data.name}" has been added successfully`,
+      });
+    } catch (error) {
+      console.error('Error creating door:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create door",
+        variant: "destructive",
+      });
+    }
   };
 
-  const updateDoor = () => {
+  const updateDoor = async () => {
     if (!editingDoor?.name || !editingDoor?.location) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please fill in name and location",
         variant: "destructive",
       });
       return;
     }
 
-    setDoors(prev => prev.map(door => 
-      door.id === editingDoor.id ? editingDoor : door
-    ));
-    
-    setEditingDoor(null);
-    setIsEditDialogOpen(false);
-    
-    toast({
-      title: "Door Updated",
-      description: `Door "${editingDoor.name}" has been updated successfully`,
-    });
+    try {
+      const { data, error } = await supabase
+        .from('doors')
+        .update({
+          name: editingDoor.name,
+          location: editingDoor.location,
+          ip_address: editingDoor.ip_address || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingDoor.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setDoors(prev => prev.map(door => 
+        door.id === editingDoor.id ? data : door
+      ));
+      
+      setEditingDoor(null);
+      setIsEditDialogOpen(false);
+      
+      toast({
+        title: "Door Updated",
+        description: `Door "${data.name}" has been updated successfully`,
+      });
+    } catch (error) {
+      console.error('Error updating door:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update door",
+        variant: "destructive",
+      });
+    }
   };
 
-  const toggleDoorStatus = (doorId: string) => {
-    setDoors(prev => prev.map(door => {
-      if (door.id === doorId) {
-        const newStatus = door.status === 'locked' ? 'unlocked' : 'locked';
-        toast({
-          title: `Door ${newStatus}`,
-          description: `${door.name} is now ${newStatus}`,
-        });
-        return { ...door, status: newStatus };
-      }
-      return door;
-    }));
+  const toggleDoorStatus = async (door: Door) => {
+    const newStatus = door.status === 'locked' ? 'unlocked' : 'locked';
+    
+    try {
+      const { data, error } = await supabase
+        .from('doors')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', door.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setDoors(prev => prev.map(d => 
+        d.id === door.id ? data : d
+      ));
+
+      toast({
+        title: `Door ${newStatus}`,
+        description: `${door.name} is now ${newStatus}`,
+      });
+    } catch (error) {
+      console.error('Error toggling door status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update door status",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -108,12 +181,16 @@ const DoorManagement = () => {
     }
   };
 
+  if (isLoading) {
+    return <div className="flex justify-center py-8">Loading doors...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Door Management</h2>
-          <p className="text-gray-600">Configure and monitor door access points</p>
+          <p className="text-gray-600">Configure and monitor door access points with IP addresses</p>
         </div>
         
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -149,6 +226,15 @@ const DoorManagement = () => {
                   placeholder="e.g., Ground Floor"
                 />
               </div>
+              <div>
+                <Label htmlFor="ipAddress">IP Address (Optional)</Label>
+                <Input
+                  id="ipAddress"
+                  value={newDoor.ip_address}
+                  onChange={(e) => setNewDoor(prev => ({ ...prev, ip_address: e.target.value }))}
+                  placeholder="e.g., 192.168.1.100"
+                />
+              </div>
               <Button onClick={createDoor} className="w-full">
                 Create Door
               </Button>
@@ -177,8 +263,14 @@ const DoorManagement = () => {
                       <Badge className={getStatusColor(door.status)}>
                         {door.status.charAt(0).toUpperCase() + door.status.slice(1)}
                       </Badge>
+                      {door.ip_address && (
+                        <div className="flex items-center space-x-1 text-sm text-gray-500">
+                          <Network className="w-4 h-4" />
+                          <span>{door.ip_address}</span>
+                        </div>
+                      )}
                       <span className="text-sm text-gray-500">
-                        {door.accessCount} accesses today
+                        {door.access_count} accesses
                       </span>
                     </div>
                   </div>
@@ -186,10 +278,10 @@ const DoorManagement = () => {
                 
                 <div className="flex items-center space-x-2">
                   <div className="text-right text-sm text-gray-500">
-                    {door.lastAccess && <p>Last access: {door.lastAccess}</p>}
+                    {door.last_access && <p>Last access: {new Date(door.last_access).toLocaleString()}</p>}
                   </div>
                   <Button
-                    onClick={() => toggleDoorStatus(door.id)}
+                    onClick={() => toggleDoorStatus(door)}
                     variant={door.status === 'locked' ? 'default' : 'outline'}
                     size="sm"
                     className="flex items-center space-x-1"
@@ -228,7 +320,7 @@ const DoorManagement = () => {
           <DialogHeader>
             <DialogTitle>Edit Door</DialogTitle>
             <DialogDescription>
-              Update door information
+              Update door information and IP address
             </DialogDescription>
           </DialogHeader>
           {editingDoor && (
@@ -249,6 +341,15 @@ const DoorManagement = () => {
                   value={editingDoor.location}
                   onChange={(e) => setEditingDoor(prev => prev ? { ...prev, location: e.target.value } : null)}
                   placeholder="e.g., Ground Floor"
+                />
+              </div>
+              <div>
+                <Label htmlFor="editIpAddress">IP Address</Label>
+                <Input
+                  id="editIpAddress"
+                  value={editingDoor.ip_address || ''}
+                  onChange={(e) => setEditingDoor(prev => prev ? { ...prev, ip_address: e.target.value } : null)}
+                  placeholder="e.g., 192.168.1.100"
                 />
               </div>
               <Button onClick={updateDoor} className="w-full">

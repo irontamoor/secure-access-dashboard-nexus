@@ -1,23 +1,15 @@
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
 import DashboardHeader from './DashboardHeader';
 import UserManagement from './UserManagement';
 import DoorManagement from './DoorManagement';
 import ActivityLogs from './ActivityLogs';
 import PinManagement from './PinManagement';
-import { Users, Settings, Calendar, Key } from 'lucide-react';
-
-interface User {
-  id: string;
-  username: string;
-  role: 'admin' | 'staff';
-  name: string;
-  pin?: string;
-}
+import SystemSettings from './SystemSettings';
+import DatabaseStatus from './DatabaseStatus';
+import { Users, Settings, Calendar, Key, Database, Mail } from 'lucide-react';
+import type { User } from '@/types/database';
 
 interface AdminDashboardProps {
   user: User;
@@ -26,7 +18,6 @@ interface AdminDashboardProps {
 
 const AdminDashboard = ({ user, onLogout }: AdminDashboardProps) => {
   const [activeTab, setActiveTab] = useState('overview');
-  const { toast } = useToast();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -39,7 +30,7 @@ const AdminDashboard = ({ user, onLogout }: AdminDashboardProps) => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white/60 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-7 bg-white/60 backdrop-blur-sm">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               Overview
@@ -60,51 +51,18 @@ const AdminDashboard = ({ user, onLogout }: AdminDashboardProps) => {
               <Calendar className="w-4 h-4" />
               Logs
             </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Settings
+            </TabsTrigger>
+            <TabsTrigger value="database" className="flex items-center gap-2">
+              <Database className="w-4 h-4" />
+              Database
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-              <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Total Users</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">15</div>
-                  <p className="text-xs text-gray-500">+2 from last month</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Active Doors</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-600">8</div>
-                  <p className="text-xs text-gray-500">All operational</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Today's Access</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-purple-600">127</div>
-                  <p className="text-xs text-gray-500">+15% from yesterday</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Failed Attempts</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-600">3</div>
-                  <p className="text-xs text-gray-500">Last 24 hours</p>
-                </CardContent>
-              </Card>
-            </div>
-            
+            <DatabaseStatus />
             <ActivityLogs isAdmin={true} userId={user.id} />
           </TabsContent>
 
@@ -122,6 +80,14 @@ const AdminDashboard = ({ user, onLogout }: AdminDashboardProps) => {
 
           <TabsContent value="logs">
             <ActivityLogs isAdmin={true} userId={user.id} />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <SystemSettings />
+          </TabsContent>
+
+          <TabsContent value="database">
+            <DatabaseStatus />
           </TabsContent>
         </Tabs>
       </div>
