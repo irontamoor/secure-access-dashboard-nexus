@@ -241,6 +241,29 @@ const UserManagement = () => {
     });
   };
 
+  const deleteUser = async (user: UserType) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.filter(u => u.id !== user.id));
+      toast({
+        title: "User Deleted",
+        description: `${user.name} has been deleted.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete user",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return <div className="flex justify-center py-8">Loading users...</div>;
   }
@@ -281,6 +304,7 @@ const UserManagement = () => {
                 onEmailPin={() => {}}
                 onToggleDisabled={() => toggleUserDisabled(user)}
                 onTogglePinDisabled={() => togglePinDisabled(user)}
+                onDelete={() => deleteUser(user)}
                 disabled
               />
             ))}

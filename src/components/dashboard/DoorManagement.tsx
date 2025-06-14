@@ -7,8 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Settings, Lock, Unlock, Network, Ban, Undo2 } from 'lucide-react';
+import { Settings, Lock, Unlock, Network, Ban, Undo2, DeleteIcon } from 'lucide-react';
 import type { Door } from '@/types/database';
+import DoorDeleteDialog from './user-management/DoorDeleteDialog';
 
 const DoorManagement = () => {
   const { toast } = useToast();
@@ -228,6 +229,29 @@ const DoorManagement = () => {
     }
   };
 
+  const deleteDoor = async (door) => {
+    try {
+      const { error } = await supabase
+        .from('doors')
+        .delete()
+        .eq('id', door.id);
+
+      if (error) throw error;
+
+      setDoors(prev => prev.filter(d => d.id !== door.id));
+      toast({
+        title: "Door Deleted",
+        description: `${door.name} has been deleted.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete door",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'locked': return 'bg-red-100 text-red-800';
@@ -406,13 +430,25 @@ const DoorManagement = () => {
                     <h3 className="font-semibold">{door.name}</h3>
                     <p className="text-gray-500">{door.location}</p>
                   </div>
-                  <Button
-                    onClick={() => toggleDoorDisabled(door)}
-                    size="sm"
-                    variant="outline"
-                  >
-                    <Undo2 className="w-4 h-4 mr-1" /> Enable
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => toggleDoorDisabled(door)}
+                      size="sm"
+                      variant="outline"
+                    >
+                      <Undo2 className="w-4 h-4 mr-1" /> Enable
+                    </Button>
+                    <DoorDeleteDialog onDelete={() => deleteDoor(door)}>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="flex items-center space-x-1"
+                      >
+                        <DeleteIcon className="w-4 h-4" />
+                        <span>Delete</span>
+                      </Button>
+                    </DoorDeleteDialog>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -469,4 +505,4 @@ const DoorManagement = () => {
 };
 
 export default DoorManagement;
-// NOTE: This file is now quite large (396+ lines). Please consider refactoring into smaller files for maintainability.
+// NOTE: This file is now quite large (473+ lines). Please consider refactoring into smaller files for maintainability.

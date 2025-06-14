@@ -1,9 +1,10 @@
-
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { User, Settings, Mail, Ban, Undo2, Key } from 'lucide-react';
 import type { User as UserType } from '@/types/database';
+import UserDeleteDialog from './UserDeleteDialog';
+import { delete as DeleteIcon } from "lucide-react";
 
 interface UserCardProps {
   user: UserType;
@@ -11,6 +12,7 @@ interface UserCardProps {
   onEmailPin: (u: UserType) => void;
   onToggleDisabled?: () => void;
   onTogglePinDisabled?: () => void;
+  onDelete?: () => void;
   disabled?: boolean;
 }
 
@@ -20,8 +22,9 @@ const UserCard = ({
   onEmailPin,
   onToggleDisabled,
   onTogglePinDisabled,
+  onDelete,
   disabled,
-}: UserCardProps) => (
+}: UserCardProps & { onDelete?: () => void }) => (
   <Card className={`bg-white/60 backdrop-blur-sm border-0 shadow-lg ${user.disabled ? 'opacity-50' : ''}`}>
     <CardContent className="p-6">
       <div className="flex items-center justify-between">
@@ -106,6 +109,18 @@ const UserCard = ({
                 <Key className="w-4 h-4" />
                 <span>{user.pin_disabled ? 'Enable PIN' : 'Disable PIN'}</span>
               </Button>
+            )}
+            {user.disabled && onDelete && (
+              <UserDeleteDialog onDelete={onDelete}>
+                <Button 
+                  size="sm"
+                  variant="destructive"
+                  className="flex items-center space-x-1"
+                >
+                  <DeleteIcon className="w-4 h-4" />
+                  <span>Delete</span>
+                </Button>
+              </UserDeleteDialog>
             )}
           </div>
         </div>
