@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -13,6 +12,8 @@ export default function DatabaseStatus() {
   const [failedUsers, setFailedUsers] = useState<any[]>([]);
   const [swipeCount, setSwipeCount] = useState<number | null>(null);
   const [swipesByLocation, setSwipesByLocation] = useState<DoorCounts>({});
+  const [failedSwipes, setFailedSwipes] = useState<any[]>([]);
+  const [failedSwipesByLocation, setFailedSwipesByLocation] = useState<DoorCounts>({});
   const [ldapStatus, setLdapStatus] = useState<{ sync_time: string; status: string } | null>(null);
   const [smtpStatus, setSmtpStatus] = useState<{ connected: boolean } | null>(null);
   const [dbStatus, setDbStatus] = useState<"checking" | "connected" | "not_connected">("checking");
@@ -70,6 +71,84 @@ export default function DatabaseStatus() {
         setSwipesByLocation(locationCounts);
       } else {
         setSwipesByLocation({});
+      }
+    })();
+
+    // FAILED SWIPES (access denied in last 24h)
+    (async () => {
+      const now = new Date();
+      const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+      // Get denied logs in last 24h
+      const { data: deniedLogs } = await supabase
+        .from('access_logs')
+        .select('id,user_id,door_id,access_type,pin_used,timestamp,notes')
+        .eq('access_type', 'denied')
+        .gte('timestamp', since.toISOString())
+        .order('timestamp', { ascending: false });
+
+      if (deniedLogs && deniedLogs.length > 0) {
+        // Fetch all related data needed
+        const userIds = Array.from(new Set(deniedLogs
+          .map(log => log.user_id)
+          .filter(Boolean)
+        ));
+        const doorIds = Array.from(new Set(deniedLogs
+          .map(log => log.door_id)
+          .filter(Boolean)
+        ));
+        const pins = Array.from(new Set(deniedLogs
+          .map(l => l.pin_used)
+          .filter(Boolean)
+        ));
+
+        // Fetch users
+        let users: any[] = [];
+        if (userIds.length > 0) {
+          const usersRes = await supabase
+            .from('users')
+            .select('id,username,name,email,disabled,card_number,pin_disabled')
+            .in('id', userIds);
+          users = usersRes.data || [];
+        }
+
+        // Fetch doors
+        let doors: any[] = [];
+        if (doorIds.length > 0) {
+          const doorsRes = await supabase
+            .from('doors')
+            .select('id,location');
+          doors = doorsRes.data || [];
+        }
+
+        // Group failed swipes by location
+        const doorMap = doors.reduce((acc, d) => ({ ...acc, [d.id]: d.location }), {});
+        const locCounts: DoorCounts = {};
+        for (const log of deniedLogs) {
+          const loc = doorMap[log.door_id] || 'Unknown';
+          locCounts[loc] = (locCounts[loc] || 0) + 1;
+        }
+        setFailedSwipesByLocation(locCounts);
+
+        // Prepare failed swipes log for UI
+        const failedList = deniedLogs.map((log) => {
+          const user = users.find(u => u.id === log.user_id);
+          return {
+            ...log,
+            user,
+            username: user?.username || '',
+            name: user?.name || '',
+            email: user?.email || '',
+            card_number: user?.card_number || log.pin_used || null,
+            user_disabled: user?.disabled || null,
+            pin_disabled: user?.pin_disabled || null,
+            door_location: doorMap[log.door_id] || 'Unknown'
+          };
+        });
+        setFailedSwipes(failedList);
+      } else {
+        setFailedSwipes([]);
+        setFailedSwipesByLocation({});
       }
     })();
 
@@ -141,22 +220,40 @@ export default function DatabaseStatus() {
         </div>
       </div>
 
-      {/* Breakdown/swipe by location */}
+      {/* Swipe Success/Failed breakdown */}
       <div className="mb-8">
-        <div className="font-semibold text-gray-700 mb-2">Swipes by Area (24h)</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+        <div className="font-semibold text-gray-700 mb-2">
+          Swipes by Area (24h) &nbsp;
+          <span className="text-xs text-gray-400">(Successes & Failures)</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          {/* Successful swipes by area */}
           {Object.keys(swipesByLocation).length === 0 ? (
-            <div className="text-gray-500">No swipes in the last 24 hours.</div>
+            <div className="text-gray-500">No successful swipes in the last 24 hours.</div>
           ) : (
             Object.entries(swipesByLocation).map(([loc, count]) => (
-              <div key={loc} className="bg-white/60 rounded-lg p-4 shadow border">
+              <div key={loc} className="bg-green-50 rounded-lg p-4 shadow border">
                 <div className="font-medium text-gray-800">{loc}</div>
-                <div className="text-blue-600 text-xl font-bold">{count} swipes</div>
+                <div className="text-green-600 text-xl font-bold">{count} success</div>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
+          {/* Failed swipes by area */}
+          {Object.keys(failedSwipesByLocation).length === 0 ? (
+            <div className="text-gray-500">No failed swipes in the last 24 hours.</div>
+          ) : (
+            Object.entries(failedSwipesByLocation).map(([loc, count]) => (
+              <div key={loc} className="bg-red-50 rounded-lg p-4 shadow border">
+                <div className="font-medium text-gray-800">{loc}</div>
+                <div className="text-red-600 text-xl font-bold">{count} failed</div>
               </div>
             ))
           )}
         </div>
       </div>
+
       {/* Failed users list */}
       <div className="mb-8">
         <div className="font-semibold text-gray-700 mb-2">Disabled Users List</div>
@@ -180,6 +277,53 @@ export default function DatabaseStatus() {
                     <td className="px-2 py-1">{u.username}</td>
                     <td className="px-2 py-1">{u.name}</td>
                     <td className="px-2 py-1">{u.email}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* Failed Swipe Log (last 24h) */}
+      <div className="mb-8">
+        <div className="font-semibold text-gray-700 mb-2">
+          Failed Swipe Attempts (Last 24h)
+        </div>
+        <div className="overflow-auto max-h-64">
+          {failedSwipes.length === 0 ? (
+            <div className="text-gray-500">No failed swipes.</div>
+          ) : (
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="px-2 py-1 text-left font-medium">Time</th>
+                  <th className="px-2 py-1 text-left font-medium">User/Card</th>
+                  <th className="px-2 py-1 text-left font-medium">Location</th>
+                  <th className="px-2 py-1 text-left font-medium">Reason</th>
+                  <th className="px-2 py-1 text-left font-medium">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {failedSwipes.map((f, i) => (
+                  <tr key={f.id + "_" + i}>
+                    <td className="px-2 py-1">{f.timestamp ? new Date(f.timestamp).toLocaleString() : "—"}</td>
+                    <td className="px-2 py-1">
+                      {f.username || f.name || (f.card_number ? <span>Card: <span className="font-mono">{f.card_number}</span></span> : "Unknown")}
+                      {f.user_disabled && <span className="ml-1 text-xs text-red-600">(User Disabled)</span>}
+                      {f.pin_disabled && <span className="ml-1 text-xs text-yellow-600">(PIN Disabled)</span>}
+                    </td>
+                    <td className="px-2 py-1">{f.door_location}</td>
+                    <td className="px-2 py-1">
+                      {f.user_disabled
+                        ? "User disabled"
+                        : f.pin_disabled
+                        ? "PIN disabled"
+                        : !f.user
+                        ? "Invalid card/user"
+                        : "Denied for other reason"}
+                    </td>
+                    <td className="px-2 py-1">{f.notes || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -228,4 +372,3 @@ export default function DatabaseStatus() {
     </div>
   );
 }
-
