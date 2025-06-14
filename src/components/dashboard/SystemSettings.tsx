@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -28,11 +28,10 @@ const SystemSettings = () => {
 
       if (error) throw error;
 
-      const settingsMap = data.reduce((acc, setting) => {
+      const settingsMap = data.reduce((acc: Record<string, string>, setting: any) => {
         acc[setting.setting_key] = setting.setting_value || '';
         return acc;
-      }, {} as Record<string, string>);
-
+      }, {});
       setSettings(settingsMap);
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -81,19 +80,71 @@ const SystemSettings = () => {
     });
   };
 
+  // Company branding states
   const [companyLogo, setCompanyLogo] = useState(settings.company_logo_url || "");
   const [companyName, setCompanyName] = useState(settings.company_name || "");
   const [savingCompanySettings, setSavingCompanySettings] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setCompanyLogo(settings.company_logo_url || "");
     setCompanyName(settings.company_name || "");
   }, [settings]);
 
-  const handleLogoSave = async () => {
-    setSavingCompanySettings(true);
-    await updateSetting("company_logo_url", companyLogo);
-    setSavingCompanySettings(false);
+  // New: Upload logo image to Supabase Storage
+  const handleLogoUpload = async () => {
+    if (!logoFile) {
+      toast({ title: "No file selected", description: "Please select a logo image file." });
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      // Use filename based on upload time to avoid cache/collision issues
+      const fileExt = logoFile.name.split('.').pop();
+      const filePath = `logo.${Date.now()}.${fileExt}`;
+
+      // Upload to Supabase storage bucket
+      const { data, error } = await supabase.storage
+        .from('company-logos')
+        .upload(filePath, logoFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: publicUrlData } = supabase
+        .storage
+        .from('company-logos')
+        .getPublicUrl(filePath);
+
+      if (!publicUrlData?.publicUrl) {
+        throw new Error("Failed to get public URL for logo");
+      }
+
+      await updateSetting("company_logo_url", publicUrlData.publicUrl);
+      setCompanyLogo(publicUrlData.publicUrl);
+
+      toast({
+        title: "Logo Uploaded",
+        description: "Company logo was uploaded and saved.",
+      });
+      setLogoFile(null);
+
+      // Reset input value for file
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (error: any) {
+      toast({
+        title: "Logo Upload Failed",
+        description: error?.message || String(error),
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingLogo(false);
+    }
   };
 
   const handleCompanyNameSave = async () => {
@@ -113,30 +164,34 @@ const SystemSettings = () => {
         <p className="text-gray-600">Configure SMTP, security, company branding, and system preferences</p>
       </div>
       <div className="grid gap-6">
-        {/* New: Company Branding */}
+        {/* Company Branding */}
         <div className="bg-white/60 backdrop-blur-sm rounded-lg shadow-lg px-6 py-5">
           <div className="flex items-center space-x-3 mb-4">
             <Image className="w-5 h-5 text-blue-500" />
             <h3 className="text-lg font-semibold text-gray-800">Company Branding</h3>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            {/* Company Logo */}
+            {/* Logo Upload */}
             <div>
-              <label htmlFor="company_logo_url" className="block text-sm font-medium mb-1">
-                Logo Image URL
+              <label htmlFor="company_logo_upload" className="block text-sm font-medium mb-1">
+                Company Logo
               </label>
               <input
-                id="company_logo_url"
-                type="url"
-                placeholder="https://yourcompany.com/logo.png"
-                value={companyLogo}
-                onChange={(e) => setCompanyLogo(e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                autoComplete="off"
+                ref={fileInputRef}
+                id="company_logo_upload"
+                type="file"
+                accept="image/*"
+                disabled={uploadingLogo}
+                onChange={e => {
+                  if (e.target.files && e.target.files[0]) {
+                    setLogoFile(e.target.files[0]);
+                  }
+                }}
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white cursor-pointer"
               />
               <div className="flex items-center mt-2 space-x-2">
-                <Button size="sm" onClick={handleLogoSave} disabled={savingCompanySettings}>
-                  Save Logo
+                <Button size="sm" type="button" onClick={handleLogoUpload} disabled={uploadingLogo || !logoFile}>
+                  {uploadingLogo ? "Uploading..." : "Upload Logo"}
                 </Button>
                 {(companyLogo || settings.company_logo_url) && (
                   <img
@@ -147,6 +202,7 @@ const SystemSettings = () => {
                   />
                 )}
               </div>
+              <div className="text-xs text-gray-500 mt-1">Upload a PNG, JPG, or SVG. Max size 2MB.</div>
             </div>
             {/* Company Name */}
             <div>
