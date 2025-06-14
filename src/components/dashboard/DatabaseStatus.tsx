@@ -7,7 +7,6 @@ interface DoorCounts {
 }
 
 import SmtpLogs from './SmtpLogs';
-import SentEmailsLog from './SentEmailsLog';
 import AllSwipeLogs from './AllSwipeLogs';
 
 export default function DatabaseStatus() {
@@ -377,7 +376,6 @@ export default function DatabaseStatus() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
         <div>
           <SmtpLogs />
-          <SentEmailsLog />
         </div>
         <div>
           <AllSwipeLogs />
