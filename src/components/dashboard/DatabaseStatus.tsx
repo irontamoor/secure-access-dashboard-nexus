@@ -7,7 +7,6 @@ interface DoorCounts {
 }
 
 import SmtpLogs from './SmtpLogs';
-import AllSwipeLogs from './AllSwipeLogs';
 
 export default function DatabaseStatus() {
   const [userCount, setUserCount] = useState<number | null>(null);
@@ -373,14 +372,7 @@ export default function DatabaseStatus() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
-        <div>
-          <SmtpLogs />
-        </div>
-        <div>
-          <AllSwipeLogs />
-        </div>
-      </div>
+      {/* Logs have been moved to new Logs tab */}
     </div>
   );
 }

@@ -10,6 +10,9 @@ import DatabaseSettings from './DatabaseSettings';
 import DoorPermissions from './DoorPermissions';
 import EmailNotifications from './EmailNotifications';
 import PinManagement from './PinManagement';
+import SmtpLogs from './SmtpLogs';
+import AllSwipeLogs from './AllSwipeLogs';
+import SystemErrorLogs from './SystemErrorLogs';
 import type { User } from '@/types/database';
 
 interface AdminDashboardProps {
@@ -25,11 +28,12 @@ const AdminDashboard = ({ user, onLogout }) => {
       <DashboardHeader user={user} onLogout={onLogout} />
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 bg-white/80 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-8 bg-white/80 backdrop-blur-sm">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="doors">Doors</TabsTrigger>
             <TabsTrigger value="logs">Activity</TabsTrigger>
+            <TabsTrigger value="email-logs">Logs</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="database">Database</TabsTrigger>
             <TabsTrigger value="system">System</TabsTrigger>
@@ -45,6 +49,19 @@ const AdminDashboard = ({ user, onLogout }) => {
           </TabsContent>
           <TabsContent value="logs">
             <ActivityLogs isAdmin={true} userId={user.id} />
+          </TabsContent>
+          <TabsContent value="email-logs">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <SmtpLogs />
+              </div>
+              <div>
+                <AllSwipeLogs />
+              </div>
+            </div>
+            <div className="mt-8">
+              <SystemErrorLogs />
+            </div>
           </TabsContent>
           <TabsContent value="notifications">
             <EmailNotifications />
