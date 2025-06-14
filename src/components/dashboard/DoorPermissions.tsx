@@ -49,7 +49,8 @@ const DoorPermissions = () => {
       setDoors(doorsResult.data.map(door => ({
         ...door,
         status: door.status as 'locked' | 'unlocked' | 'maintenance',
-        ip_address: (typeof door.ip_address === 'string' || door.ip_address === null) ? door.ip_address : null,
+        // Fix: Ensure ip_address is string|null, not unknown
+        ip_address: typeof door.ip_address === 'string' ? door.ip_address : (door.ip_address === null ? null : String(door.ip_address)),
       })));
       setPermissions(permissionsResult.data);
     } catch (error) {
