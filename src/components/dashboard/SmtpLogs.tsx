@@ -11,6 +11,22 @@ interface SmtpLog {
   user_id: string | null;
 }
 
+function convertToCsv(logs: SmtpLog[]) {
+  if (!logs.length) return '';
+  const header = [
+    'id','timestamp','event_type','status','details','user_id'
+  ];
+  const rows = logs.map(l =>
+    header.map(k => {
+      let val = (l as any)[k];
+      if (k === "details") val = JSON.stringify(val ?? '');
+      if (val === null || val === undefined) return '';
+      return `"${String(val).replace(/"/g, '""')}"`;
+    }).join(',')
+  );
+  return [header.join(','), ...rows].join('\r\n');
+}
+
 export default function SmtpLogs() {
   const [logs, setLogs] = useState<SmtpLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,9 +43,31 @@ export default function SmtpLogs() {
       });
   }, []);
 
+  const handleExport = () => {
+    const csv = convertToCsv(logs);
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `smtp_logs_${new Date().toISOString().substring(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="mb-10">
-      <h3 className="font-semibold text-gray-700 mb-1">Recent SMTP Logs</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-gray-700 mb-1">Recent SMTP Logs</h3>
+        <button
+          className="text-xs px-3 py-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-900 border border-blue-200 ml-2"
+          onClick={handleExport}
+          disabled={loading || logs.length === 0}
+        >
+          Export to CSV
+        </button>
+      </div>
       <div className="overflow-auto max-h-64">
         {loading ? (
           <div className="text-gray-400">Loading...</div>
