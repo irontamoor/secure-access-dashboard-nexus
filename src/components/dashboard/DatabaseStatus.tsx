@@ -1,10 +1,10 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 const DatabaseStatus = () => {
   const [ldapStatus, setLdapStatus] = useState<{ sync_time: string; status: string } | null>(null);
   const [smtpStatus, setSmtpStatus] = useState<{ connected: boolean } | null>(null);
-  const [failedEmails, setFailedEmails] = useState<any[]>([]); // You should define type if available
 
   useEffect(() => {
     // Fetch last LDAP sync
@@ -38,17 +38,7 @@ const DatabaseStatus = () => {
         }
       });
 
-    // Fetch failed SMTP emails - you must have a 'failed_emails' or similar table (update below as needed)
-    supabase
-      .from('failed_emails') // <--- CHANGE THIS TO YOUR FAILED EMAIL LOG TABLE NAME
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(5)
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          setFailedEmails(data);
-        }
-      });
+    // No failed_emails table fetch here, since it doesn't exist in the types
   }, []);
 
   return (
@@ -81,23 +71,7 @@ const DatabaseStatus = () => {
           )}
         </div>
       </div>
-      {/* Failed Emails */}
-      {failedEmails.length > 0 && (
-        <div className="mt-8">
-          <div className="font-semibold text-gray-700 mb-2">Failed SMTP Emails</div>
-          <div className="bg-white/80 rounded-xl shadow p-4">
-            <ul className="divide-y divide-gray-200">
-              {failedEmails.map((email) => (
-                <li key={email.id} className="py-2 text-xs">
-                  <strong>To:</strong> {email.recipient} &mdash; <strong>Subject:</strong> {email.subject}<br />
-                  <strong>Error:</strong> {email.error_message}
-                  <div className="text-gray-400">{new Date(email.created_at).toLocaleString()}</div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
+      {/* Removed failed emails section because table does not exist */}
     </div>
   );
 };
