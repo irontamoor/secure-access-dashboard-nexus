@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Database, Server, Sync, RefreshCw } from 'lucide-react';
+import { Database, Server, RefreshCw } from 'lucide-react';
 import type { SystemSetting, LdapSyncLog } from '@/types/database';
 
 const DatabaseSettings = () => {
@@ -59,7 +59,16 @@ const DatabaseSettings = () => {
         .limit(10);
 
       if (error) throw error;
-      setSyncLogs(data || []);
+      // Convert sync_status string to valid enum if necessary
+      setSyncLogs(
+        (data || []).map((log) => ({
+          ...log,
+          sync_status:
+            log.sync_status === "running" || log.sync_status === "completed" || log.sync_status === "failed"
+              ? log.sync_status
+              : "running",
+        }))
+      );
     } catch (error) {
       console.error('Error loading sync logs:', error);
     }
@@ -244,11 +253,7 @@ const DatabaseSettings = () => {
                 disabled={isSyncing}
                 className="flex items-center space-x-2"
               >
-                {isSyncing ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sync className="w-4 h-4" />
-                )}
+                <RefreshCw className="w-4 h-4 animate-spin" />
                 <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
               </Button>
             </div>

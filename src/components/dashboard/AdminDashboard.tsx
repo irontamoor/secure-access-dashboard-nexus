@@ -57,11 +57,11 @@ const AdminDashboard = ({ user, onLogout }: AdminDashboardProps) => {
           </TabsContent>
 
           <TabsContent value="logs">
-            <ActivityLogs />
+            <ActivityLogs isAdmin={true} userId={user.id} />
           </TabsContent>
 
           <TabsContent value="pins">
-            <PinManagement />
+            <PinManagement isAdmin={true} userId={user.id} />
           </TabsContent>
 
           <TabsContent value="notifications">

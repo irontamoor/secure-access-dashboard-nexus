@@ -10,12 +10,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Shield, Plus, Trash2, User, DoorOpen } from 'lucide-react';
-import type { User, Door, DoorPermission } from '@/types/database';
+import type { User as DBUser, Door as DBDoor, DoorPermission } from '@/types/database';
 
 const DoorPermissions = () => {
   const { toast } = useToast();
-  const [users, setUsers] = useState<User[]>([]);
-  const [doors, setDoors] = useState<Door[]>([]);
+  const [users, setUsers] = useState<DBUser[]>([]);
+  const [doors, setDoors] = useState<DBDoor[]>([]);
   const [permissions, setPermissions] = useState<DoorPermission[]>([]);
   const [newPermission, setNewPermission] = useState({
     user_id: '',
@@ -35,19 +35,22 @@ const DoorPermissions = () => {
       const [usersResult, doorsResult, permissionsResult] = await Promise.all([
         supabase.from('users').select('*').order('name'),
         supabase.from('doors').select('*').order('name'),
-        supabase.from('door_permissions').select(`
-          *,
-          user:users(name, username),
-          door:doors(name, location)
-        `).order('granted_at', { ascending: false })
+        supabase.from('door_permissions').select('*').order('granted_at', { ascending: false })
       ]);
 
       if (usersResult.error) throw usersResult.error;
       if (doorsResult.error) throw doorsResult.error;
       if (permissionsResult.error) throw permissionsResult.error;
 
-      setUsers(usersResult.data.map(user => ({ ...user, role: user.role as 'admin' | 'staff' })));
-      setDoors(doorsResult.data.map(door => ({ ...door, status: door.status as 'locked' | 'unlocked' | 'maintenance' })));
+      setUsers(usersResult.data.map(user => ({
+        ...user,
+        role: user.role as 'admin' | 'staff'
+      })));
+      setDoors(doorsResult.data.map(door => ({
+        ...door,
+        status: door.status as 'locked' | 'unlocked' | 'maintenance',
+        ip_address: (typeof door.ip_address === 'string' || door.ip_address === null) ? door.ip_address : null,
+      })));
       setPermissions(permissionsResult.data);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -81,14 +84,18 @@ const DoorPermissions = () => {
           expires_at: newPermission.expires_at || null,
           notes: newPermission.notes || null
         }])
-        .select(`
-          *,
-          user:users(name, username),
-          door:doors(name, location)
-        `)
-        .single();
+        .select('*')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) {
+        toast({
+          title: "Error",
+          description: "Permission was not returned from server",
+          variant: "destructive"
+        });
+        return;
+      }
 
       setPermissions(prev => [data, ...prev]);
       setNewPermission({ user_id: '', door_id: '', expires_at: '', notes: '' });
@@ -141,6 +148,9 @@ const DoorPermissions = () => {
   if (isLoading) {
     return <div className="flex justify-center py-8">Loading door permissions...</div>;
   }
+
+  const getUserById = (uid: string) => users.find(u => u.id === uid);
+  const getDoorById = (did: string) => doors.find(d => d.id === did);
 
   return (
     <div className="space-y-6">
@@ -222,58 +232,62 @@ const DoorPermissions = () => {
       </div>
 
       <div className="grid gap-4">
-        {permissions.map((permission) => (
-          <Card key={permission.id} className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Shield className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <User className="w-4 h-4 text-gray-500" />
-                      <span className="font-semibold">{permission.user?.name}</span>
-                      <span className="text-gray-500">@{permission.user?.username}</span>
+        {permissions.map((permission) => {
+          const user = getUserById(permission.user_id);
+          const door = getDoorById(permission.door_id);
+          return (
+            <Card key={permission.id} className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Shield className="w-6 h-6 text-blue-600" />
                     </div>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <DoorOpen className="w-4 h-4 text-gray-500" />
-                      <span>{permission.door?.name} - {permission.door?.location}</span>
-                    </div>
-                    <div className="flex items-center space-x-2 mt-2">
-                      <Badge variant={permission.access_granted ? 'default' : 'destructive'}>
-                        {permission.access_granted ? 'Granted' : 'Denied'}
-                      </Badge>
-                      {permission.expires_at && (
-                        <Badge variant={isExpired(permission.expires_at) ? 'destructive' : 'secondary'}>
-                          {isExpired(permission.expires_at) ? 'Expired' : 'Expires'}: {new Date(permission.expires_at).toLocaleDateString()}
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4 text-gray-500" />
+                        <span className="font-semibold">{user ? user.name : "Unknown"}</span>
+                        <span className="text-gray-500">@{user ? user.username : ""}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <DoorOpen className="w-4 h-4 text-gray-500" />
+                        <span>{door ? `${door.name} - ${door.location}` : "Unknown door"}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 mt-2">
+                        <Badge variant={permission.access_granted ? 'default' : 'destructive'}>
+                          {permission.access_granted ? 'Granted' : 'Denied'}
                         </Badge>
+                        {permission.expires_at && (
+                          <Badge variant={isExpired(permission.expires_at) ? 'destructive' : 'secondary'}>
+                            {isExpired(permission.expires_at) ? 'Expired' : 'Expires'}: {new Date(permission.expires_at).toLocaleDateString()}
+                          </Badge>
+                        )}
+                      </div>
+                      {permission.notes && (
+                        <p className="text-sm text-gray-600 mt-1">{permission.notes}</p>
                       )}
                     </div>
-                    {permission.notes && (
-                      <p className="text-sm text-gray-600 mt-1">{permission.notes}</p>
-                    )}
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <div className="text-right text-sm text-gray-500">
+                      <p>Granted: {new Date(permission.granted_at).toLocaleDateString()}</p>
+                    </div>
+                    <Button
+                      onClick={() => revokePermission(permission.id)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-1 text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Revoke</span>
+                    </Button>
                   </div>
                 </div>
-                
-                <div className="flex items-center space-x-2">
-                  <div className="text-right text-sm text-gray-500">
-                    <p>Granted: {new Date(permission.granted_at).toLocaleDateString()}</p>
-                  </div>
-                  <Button
-                    onClick={() => revokePermission(permission.id)}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center space-x-1 text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span>Revoke</span>
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
         
         {permissions.length === 0 && (
           <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
