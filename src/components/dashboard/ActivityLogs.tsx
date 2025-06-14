@@ -28,62 +28,8 @@ const ActivityLogs = ({ isAdmin, userId }: ActivityLogsProps) => {
   const [filterAction, setFilterAction] = useState('all');
   const [filterResult, setFilterResult] = useState('all');
 
-  const [logs] = useState<ActivityLog[]>([
-    {
-      id: '1',
-      userId: '2',
-      userName: 'John Doe',
-      doorId: '1',
-      doorName: 'Main Entrance',
-      action: 'access_granted',
-      timestamp: '2024-01-15 16:45:23',
-      pinUsed: '5678',
-      result: 'success'
-    },
-    {
-      id: '2',
-      userId: '3',
-      userName: 'Jane Smith',
-      doorId: '2',
-      doorName: 'Server Room',
-      action: 'access_denied',
-      timestamp: '2024-01-15 16:30:12',
-      pinUsed: '0000',
-      result: 'failed'
-    },
-    {
-      id: '3',
-      userId: '1',
-      userName: 'Administrator',
-      doorId: '3',
-      doorName: 'Office Wing A',
-      action: 'door_unlocked',
-      timestamp: '2024-01-15 16:15:45',
-      result: 'success'
-    },
-    {
-      id: '4',
-      userId: '2',
-      userName: 'John Doe',
-      doorId: '4',
-      doorName: 'Conference Room',
-      action: 'access_granted',
-      timestamp: '2024-01-15 15:20:33',
-      pinUsed: '5678',
-      result: 'success'
-    },
-    {
-      id: '5',
-      userId: '3',
-      userName: 'Jane Smith',
-      doorId: '1',
-      doorName: 'Main Entrance',
-      action: 'access_granted',
-      timestamp: '2024-01-15 14:55:18',
-      pinUsed: '9876',
-      result: 'success'
-    },
-  ]);
+  // TODO: Replace with real logs from backend
+  const [logs] = useState<ActivityLog[]>([]);
 
   const filteredLogs = logs.filter(log => {
     const matchesSearch = isAdmin 
