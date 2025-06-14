@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,11 +27,10 @@ const AdminDashboard = ({ user, onLogout }: AdminDashboardProps) => {
       
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9 bg-white/80 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-8 bg-white/80 backdrop-blur-sm">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="doors">Doors</TabsTrigger>
-            <TabsTrigger value="permissions">Permissions</TabsTrigger>
             <TabsTrigger value="logs">Activity</TabsTrigger>
             <TabsTrigger value="pins">PINs</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
@@ -50,10 +48,6 @@ const AdminDashboard = ({ user, onLogout }: AdminDashboardProps) => {
 
           <TabsContent value="doors">
             <DoorManagement />
-          </TabsContent>
-
-          <TabsContent value="permissions">
-            <DoorPermissions />
           </TabsContent>
 
           <TabsContent value="logs">
