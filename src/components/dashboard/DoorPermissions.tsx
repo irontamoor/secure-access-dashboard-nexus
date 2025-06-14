@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, Badge } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Shield, Trash2, User, DoorOpen } from 'lucide-react';
