@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import LoginForm from '@/components/auth/LoginForm';
 import AdminDashboard from '@/components/dashboard/AdminDashboard';
@@ -125,6 +124,7 @@ const Index = () => {
     return <LoginForm onLogin={handleLogin} />;
   }
 
+  // THE KEY LOGIC: show admin dashboard for admins, staff dashboard for staff
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {currentUser.role === 'admin' ? (
