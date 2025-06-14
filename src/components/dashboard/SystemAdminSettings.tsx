@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -147,85 +146,71 @@ export default function SystemAdminSettings() {
   }
 
   return (
-    <div className="space-y-8 w-full max-w-3xl mx-auto">
-      <div>
-        <h2 className="text-3xl font-bold mb-3 text-gray-900">System Administration Settings</h2>
-        <p className="text-gray-600 mb-8">Configure LDAP/database integration, email, and error alert settings</p>
-      </div>
+    <div className="space-y-10 w-full max-w-3xl mx-auto animate-fade-in">
+      <section>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">System Administration Settings</h2>
+        <p className="text-gray-600">
+          Configure LDAP/database integration, email, and error alert settings
+        </p>
+      </section>
 
-      {/* LDAP/Database Config */}
-      <Card>
-        <CardHeader>
-          <CardTitle>LDAP Database Integration</CardTitle>
-          <CardDescription>Configure LDAP and view sync history.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <LdapConfigForm
-            settings={settings}
-            setSettings={setSettings}
-            updateSetting={updateSetting}
-            testLdapConnection={testLdapConnection}
-            triggerLdapSync={triggerLdapSync}
-            isSyncing={isSyncing}
-          />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>LDAP Sync History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SyncHistoryCard syncLogs={syncLogs} />
-        </CardContent>
-      </Card>
+      <section className="bg-white rounded-lg border shadow-sm p-6 mb-3">
+        <h3 className="text-xl font-semibold text-indigo-900 mb-1">LDAP Database Integration</h3>
+        <p className="mb-5 text-gray-500">Configure LDAP and view sync history.</p>
+        <LdapConfigForm
+          settings={settings}
+          setSettings={setSettings}
+          updateSetting={updateSetting}
+          testLdapConnection={testLdapConnection}
+          triggerLdapSync={triggerLdapSync}
+          isSyncing={isSyncing}
+        />
+      </section>
 
-      {/* Admin Email / Alerts */}
-      <Card>
-        <CardHeader>
-          <CardTitle>System Administrator Email</CardTitle>
-          <CardDescription>
-            This address will receive error notifications from the system.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-3 items-end">
-            <div className="flex-1">
-              <Label htmlFor="admin_email">Admin Email</Label>
-              <Input
-                id="admin_email"
-                type="email"
-                value={adminEmail}
-                onChange={(e) => setAdminEmail(e.target.value)}
-              />
-            </div>
-            <Button onClick={handleAdminEmailSave}>Save</Button>
+      <section className="bg-white rounded-lg border shadow-sm p-6 mb-3">
+        <h3 className="text-xl font-semibold text-indigo-900 mb-2">LDAP Sync History</h3>
+        <SyncHistoryCard syncLogs={syncLogs} />
+      </section>
+
+      <section className="bg-white rounded-lg border shadow-sm p-6 mb-3">
+        <h3 className="text-xl font-semibold text-indigo-900 mb-2">System Administrator Email</h3>
+        <p className="text-gray-500 mb-2">
+          This address will receive error notifications from the system.
+        </p>
+        <div className="flex flex-col md:flex-row gap-3 items-end">
+          <div className="flex-1">
+            <Label htmlFor="admin_email">Admin Email</Label>
+            <Input
+              id="admin_email"
+              type="email"
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+            />
           </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Error Alert Level</CardTitle>
-          <CardDescription>
-            Choose the error severity for which email alerts will be sent to the system administrator.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            <select
-              className="border rounded px-3 py-2"
-              value={errorLevel}
-              onChange={(e) => setErrorLevel(e.target.value)}
-            >
-              {ERROR_LEVELS.map((level) => (
-                <option key={level.value} value={level.value}>
-                  {level.label}
-                </option>
-              ))}
-            </select>
-            <Button onClick={handleAlertLevelSave}>Save</Button>
-          </div>
-        </CardContent>
-      </Card>
+          <Button onClick={handleAdminEmailSave}>Save</Button>
+        </div>
+      </section>
+
+      <section className="bg-white rounded-lg border shadow-sm p-6">
+        <h3 className="text-xl font-semibold text-indigo-900 mb-2">Error Alert Level</h3>
+        <p className="text-gray-500 mb-2">
+          Choose the error severity for which email alerts will be sent to the system administrator.
+        </p>
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <select
+            className="border rounded px-3 py-2"
+            value={errorLevel}
+            onChange={(e) => setErrorLevel(e.target.value)}
+          >
+            {ERROR_LEVELS.map((level) => (
+              <option key={level.value} value={level.value}>
+                {level.label}
+              </option>
+            ))}
+          </select>
+          <Button onClick={handleAlertLevelSave}>Save</Button>
+        </div>
+      </section>
     </div>
   );
 }
