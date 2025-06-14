@@ -9,9 +9,10 @@ import { Key } from 'lucide-react';
 interface UserPinSettingsProps {
   onUpdatePin: (newPin: string) => Promise<void>;
   loading?: boolean;
+  isDisabled?: boolean;
 }
 
-const UserPinSettings = ({ onUpdatePin, loading }: UserPinSettingsProps) => {
+const UserPinSettings = ({ onUpdatePin, loading, isDisabled }: UserPinSettingsProps) => {
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
 
@@ -29,6 +30,22 @@ const UserPinSettings = ({ onUpdatePin, loading }: UserPinSettingsProps) => {
     setNewPin('');
     setConfirmPin('');
   };
+
+  if (isDisabled) {
+    return (
+      <Card className="bg-white/60 max-w-md mx-auto border-2 border-dashed border-red-300 text-center mt-16">
+        <CardHeader>
+          <CardTitle>PIN is Disabled</CardTitle>
+          <CardDescription>
+            Please contact an administrator to enable your PIN for access.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-gray-700">
+          You cannot change or use your PIN until it is enabled.
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -63,7 +80,6 @@ const UserPinSettings = ({ onUpdatePin, loading }: UserPinSettingsProps) => {
               </Button>
             </div>
           </div>
-          
           <div>
             <Label htmlFor="confirmPin">Confirm New PIN</Label>
             <Input
@@ -75,7 +91,6 @@ const UserPinSettings = ({ onUpdatePin, loading }: UserPinSettingsProps) => {
               placeholder="••••"
             />
           </div>
-          
           <Button onClick={handleUpdate} className="w-full" disabled={loading}>
             Update PIN
           </Button>

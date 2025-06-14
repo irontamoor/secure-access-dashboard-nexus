@@ -42,9 +42,11 @@ const PinManagement = ({ isAdmin, userId }: PinManagementProps) => {
       // Transform the data to match our User interface
       const transformedData: UserType[] = (data || []).map(user => ({
         ...user,
-        role: user.role as 'admin' | 'staff'
+        role: user.role as 'admin' | 'staff',
+        disabled: !!user.disabled,
+        pin_disabled: !!user.pin_disabled,
       }));
-      
+
       setAllUsers(transformedData);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -141,9 +143,10 @@ const PinManagement = ({ isAdmin, userId }: PinManagementProps) => {
   }
 
   if (isAdmin) {
+    // Only show users who are not disabled
     return (
       <AdminPinManagement
-        users={allUsers}
+        users={allUsers.filter(u => !u.disabled)}
         resetUserPin={resetUserPin}
         sendPinByEmail={sendPinByEmail}
       />
@@ -151,8 +154,11 @@ const PinManagement = ({ isAdmin, userId }: PinManagementProps) => {
   }
 
   return (
+    // Only show PIN settings if user is enabled and their PIN is not disabled
     <UserPinSettings
       onUpdatePin={updateOwnPin}
+      loading={!!allUsers.find(u => u.id === userId && (u.disabled || u.pin_disabled))}
+      isDisabled={!!allUsers.find(u => u.id === userId && (u.disabled || u.pin_disabled))}
     />
   );
 };

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Settings, Lock, Unlock, Network } from 'lucide-react';
+import { Settings, Lock, Unlock, Network, Ban, Undo2 } from 'lucide-react';
 import type { Door } from '@/types/database';
 
 const DoorManagement = () => {
@@ -35,15 +35,16 @@ const DoorManagement = () => {
         .order('name');
 
       if (error) throw error;
-      
+
       // Transform the data to match our Door interface
       const transformedData: Door[] = (data || []).map(door => ({
         ...door,
         ip_address: door.ip_address as string | null,
         access_count: door.access_count || 0,
-        status: door.status as 'locked' | 'unlocked' | 'maintenance'
+        status: door.status as 'locked' | 'unlocked' | 'maintenance',
+        disabled: !!door.disabled,
       }));
-      
+
       setDoors(transformedData);
     } catch (error) {
       console.error('Error loading doors:', error);
@@ -201,6 +202,32 @@ const DoorManagement = () => {
     }
   };
 
+  const toggleDoorDisabled = async (door: Door) => {
+    try {
+      const { error } = await supabase
+        .from('doors')
+        .update({ disabled: !door.disabled, updated_at: new Date().toISOString() })
+        .eq('id', door.id);
+
+      if (error) throw error;
+
+      setDoors(prev =>
+        prev.map(d => d.id === door.id ? { ...d, disabled: !door.disabled } : d)
+      );
+
+      toast({
+        title: !door.disabled ? "Door Disabled" : "Door Restored",
+        description: !door.disabled ? `${door.name} is now disabled` : `${door.name} is now active`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update door status",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'locked': return 'bg-red-100 text-red-800';
@@ -273,7 +300,7 @@ const DoorManagement = () => {
       </div>
 
       <div className="grid gap-4">
-        {doors.map((door) => (
+        {doors.filter(door => !door.disabled).map((door) => (
           <Card key={door.id} className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -286,7 +313,9 @@ const DoorManagement = () => {
                     )}
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{door.name}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {door.name}
+                    </h3>
                     <p className="text-gray-600">{door.location}</p>
                     <div className="flex items-center space-x-2 mt-1">
                       <Badge className={getStatusColor(door.status)}>
@@ -304,44 +333,91 @@ const DoorManagement = () => {
                     </div>
                   </div>
                 </div>
-                
-                <div className="flex items-center space-x-2">
+
+                <div className="flex flex-col items-end space-y-2 min-w-[120px]">
                   <div className="text-right text-sm text-gray-500">
                     {door.last_access && <p>Last access: {new Date(door.last_access).toLocaleString()}</p>}
                   </div>
-                  <Button
-                    onClick={() => toggleDoorStatus(door)}
-                    variant={door.status === 'locked' ? 'default' : 'outline'}
-                    size="sm"
-                    className="flex items-center space-x-1"
-                  >
-                    {door.status === 'locked' ? (
-                      <>
-                        <Unlock className="w-4 h-4" />
-                        <span>Unlock</span>
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="w-4 h-4" />
-                        <span>Lock</span>
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setEditingDoor(door);
-                      setIsEditDialogOpen(true);
-                    }}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      onClick={() => toggleDoorStatus(door)}
+                      variant={door.status === 'locked' ? 'default' : 'outline'}
+                      size="sm"
+                      className="flex items-center space-x-1"
+                      disabled={door.disabled}
+                    >
+                      {door.status === 'locked' ? (
+                        <>
+                          <Unlock className="w-4 h-4" />
+                          <span>Unlock</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-4 h-4" />
+                          <span>Lock</span>
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setEditingDoor(door);
+                        setIsEditDialogOpen(true);
+                      }}
+                      variant="outline"
+                      size="sm"
+                      disabled={door.disabled}
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      onClick={() => toggleDoorDisabled(door)}
+                      variant={door.disabled ? 'outline' : 'destructive'}
+                      size="sm"
+                      className="flex items-center space-x-1"
+                    >
+                      {door.disabled ? (
+                        <>
+                          <Undo2 className="w-4 h-4" />
+                          <span>Enable</span>
+                        </>
+                      ) : (
+                        <>
+                          <Ban className="w-4 h-4" />
+                          <span>Disable</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  {door.disabled && (
+                    <Badge variant="destructive" className="mt-2">Disabled</Badge>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
+        {doors.filter(door => door.disabled).length > 0 && (
+          <>
+            <div className="mt-8 text-gray-600 text-sm">Disabled Doors</div>
+            {doors.filter(door => door.disabled).map((door) => (
+              <Card key={door.id} className="bg-white/40 border-dashed border-2 border-red-300">
+                <CardContent className="p-6 flex items-center justify-between opacity-50">
+                  <div>
+                    <h3 className="font-semibold">{door.name}</h3>
+                    <p className="text-gray-500">{door.location}</p>
+                  </div>
+                  <Button
+                    onClick={() => toggleDoorDisabled(door)}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Undo2 className="w-4 h-4 mr-1" /> Enable
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        )}
       </div>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -393,3 +469,4 @@ const DoorManagement = () => {
 };
 
 export default DoorManagement;
+// NOTE: This file is now quite large (396+ lines). Please consider refactoring into smaller files for maintainability.

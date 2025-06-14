@@ -186,6 +186,7 @@ export type Database = {
         Row: {
           access_count: number | null
           created_at: string
+          disabled: boolean
           id: string
           ip_address: unknown | null
           last_access: string | null
@@ -197,6 +198,7 @@ export type Database = {
         Insert: {
           access_count?: number | null
           created_at?: string
+          disabled?: boolean
           id?: string
           ip_address?: unknown | null
           last_access?: string | null
@@ -208,6 +210,7 @@ export type Database = {
         Update: {
           access_count?: number | null
           created_at?: string
+          disabled?: boolean
           id?: string
           ip_address?: unknown | null
           last_access?: string | null
@@ -289,6 +292,7 @@ export type Database = {
       users: {
         Row: {
           created_at: string
+          disabled: boolean
           email: string
           id: string
           last_access: string | null
@@ -297,12 +301,14 @@ export type Database = {
           ldap_dn: string | null
           name: string
           pin: string
+          pin_disabled: boolean
           role: string
           updated_at: string
           username: string
         }
         Insert: {
           created_at?: string
+          disabled?: boolean
           email: string
           id?: string
           last_access?: string | null
@@ -311,12 +317,14 @@ export type Database = {
           ldap_dn?: string | null
           name: string
           pin: string
+          pin_disabled?: boolean
           role: string
           updated_at?: string
           username: string
         }
         Update: {
           created_at?: string
+          disabled?: boolean
           email?: string
           id?: string
           last_access?: string | null
@@ -325,6 +333,7 @@ export type Database = {
           ldap_dn?: string | null
           name?: string
           pin?: string
+          pin_disabled?: boolean
           role?: string
           updated_at?: string
           username?: string

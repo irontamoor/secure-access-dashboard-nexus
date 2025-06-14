@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { UserPlus, Settings, User, Mail } from 'lucide-react';
+import { UserPlus, Settings, User, Mail, Ban, Undo2 } from 'lucide-react';
 import type { User as UserType } from '@/types/database';
 import UserCard from './user-management/UserCard';
 import CreateUserDialog from './user-management/CreateUserDialog';
@@ -38,13 +38,14 @@ const UserManagement = () => {
         .order('name');
 
       if (error) throw error;
-      
       // Transform the data to match our User interface
       const transformedData: UserType[] = (data || []).map(user => ({
         ...user,
-        role: user.role as 'admin' | 'staff'
+        role: user.role as 'admin' | 'staff',
+        disabled: !!user.disabled,
+        pin_disabled: !!user.pin_disabled,
       }));
-      
+
       setUsers(transformedData);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -168,6 +169,62 @@ const UserManagement = () => {
     }
   };
 
+  const toggleUserDisabled = async (user: UserType) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update({ disabled: !user.disabled, updated_at: new Date().toISOString() })
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setUsers(prev =>
+        prev.map(u => u.id === user.id ? { ...u, disabled: !user.disabled } : u)
+      );
+
+      toast({
+        title: !user.disabled ? "User Disabled" : "User Restored",
+        description: !user.disabled ? `${user.name} is now disabled` : `${user.name} is now active`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update user status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const togglePinDisabled = async (user: UserType) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ pin_disabled: !user.pin_disabled, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setUsers(prev =>
+        prev.map(u => u.id === user.id ? { ...u, pin_disabled: !user.pin_disabled } : u)
+      );
+
+      toast({
+        title: !user.pin_disabled ? "PIN Disabled" : "PIN Enabled",
+        description: !user.pin_disabled
+          ? `PIN for ${user.name} is disabled`
+          : `PIN for ${user.name} is enabled`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update PIN status",
+        variant: "destructive",
+      });
+    }
+  };
+
   const sendWelcomeEmail = async (user: UserType) => {
     // This would call a Supabase edge function to send welcome email
     toast({
@@ -203,17 +260,37 @@ const UserManagement = () => {
         />
       </div>
       <div className="grid gap-4">
-        {users.map((user) => (
+        {users.filter(user => !user.disabled).map((user) => (
           <UserCard
             key={user.id}
             user={user}
             onResetPin={resetUserPin}
             onEmailPin={user => sendPinByEmail(user, user.pin)}
+            onToggleDisabled={() => toggleUserDisabled(user)}
+            onTogglePinDisabled={() => togglePinDisabled(user)}
           />
         ))}
+        {users.filter(user => user.disabled).length > 0 && (
+          <>
+            <div className="mt-8 text-gray-600 text-sm">Disabled Users</div>
+            {users.filter(user => user.disabled).map((user) => (
+              <UserCard
+                key={user.id}
+                user={user}
+                onResetPin={() => {}}
+                onEmailPin={() => {}}
+                onToggleDisabled={() => toggleUserDisabled(user)}
+                onTogglePinDisabled={() => togglePinDisabled(user)}
+                disabled
+              />
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
 };
 
 export default UserManagement;
+
+// NOTE: This file is now quite large (220+ lines). Please consider refactoring into smaller files for maintainability.
