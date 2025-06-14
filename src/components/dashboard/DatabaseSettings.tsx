@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Database, Server, RefreshCw } from 'lucide-react';
 import type { SystemSetting, LdapSyncLog } from '@/types/database';
+import LdapConfigForm from './database-settings/LdapConfigForm';
+import SyncHistoryCard from './database-settings/SyncHistoryCard';
 
 const DatabaseSettings = () => {
   const { toast } = useToast();
@@ -149,158 +150,15 @@ const DatabaseSettings = () => {
       </div>
 
       <div className="grid gap-6">
-        {/* LDAP Configuration */}
-        <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Server className="w-5 h-5" />
-              <span>LDAP Configuration</span>
-            </CardTitle>
-            <CardDescription>
-              Configure LDAP authentication and user synchronization
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="ldap_enabled"
-                checked={settings.ldap_enabled === 'true'}
-                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, ldap_enabled: checked.toString() }))}
-              />
-              <Label htmlFor="ldap_enabled">Enable LDAP Authentication</Label>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="ldap_server_url">LDAP Server URL</Label>
-                <Input
-                  id="ldap_server_url"
-                  value={settings.ldap_server_url || ''}
-                  onChange={(e) => setSettings(prev => ({ ...prev, ldap_server_url: e.target.value }))}
-                  placeholder="ldap://domain.com:389"
-                />
-              </div>
-              <div>
-                <Label htmlFor="ldap_sync_interval">Sync Interval (seconds)</Label>
-                <Input
-                  id="ldap_sync_interval"
-                  type="number"
-                  value={settings.ldap_sync_interval || ''}
-                  onChange={(e) => setSettings(prev => ({ ...prev, ldap_sync_interval: e.target.value }))}
-                  placeholder="3600"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="ldap_bind_dn">Bind DN</Label>
-              <Input
-                id="ldap_bind_dn"
-                value={settings.ldap_bind_dn || ''}
-                onChange={(e) => setSettings(prev => ({ ...prev, ldap_bind_dn: e.target.value }))}
-                placeholder="CN=admin,DC=domain,DC=com"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="ldap_bind_password">Bind Password</Label>
-              <Input
-                id="ldap_bind_password"
-                type="password"
-                value={settings.ldap_bind_password || ''}
-                onChange={(e) => setSettings(prev => ({ ...prev, ldap_bind_password: e.target.value }))}
-                placeholder="Bind password"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="ldap_user_search_base">User Search Base</Label>
-              <Input
-                id="ldap_user_search_base"
-                value={settings.ldap_user_search_base || ''}
-                onChange={(e) => setSettings(prev => ({ ...prev, ldap_user_search_base: e.target.value }))}
-                placeholder="OU=Users,DC=domain,DC=com"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="ldap_user_search_filter">User Search Filter</Label>
-              <Textarea
-                id="ldap_user_search_filter"
-                value={settings.ldap_user_search_filter || ''}
-                onChange={(e) => setSettings(prev => ({ ...prev, ldap_user_search_filter: e.target.value }))}
-                placeholder="(&(objectClass=user)(memberOf=CN=door_access,OU=Groups,DC=domain,DC=com))"
-                rows={3}
-              />
-            </div>
-
-            <div className="flex space-x-2">
-              <Button onClick={() => {
-                Object.keys(settings).forEach(key => {
-                  if (key.startsWith('ldap_')) {
-                    updateSetting(key, settings[key]);
-                  }
-                });
-              }}>
-                Save LDAP Settings
-              </Button>
-              <Button onClick={testLdapConnection} variant="outline">
-                Test Connection
-              </Button>
-              <Button 
-                onClick={triggerLdapSync} 
-                variant="outline"
-                disabled={isSyncing}
-                className="flex items-center space-x-2"
-              >
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Sync History */}
-        <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Database className="w-5 h-5" />
-              <span>Sync History</span>
-            </CardTitle>
-            <CardDescription>
-              Recent LDAP synchronization logs
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {syncLogs.map((log) => (
-                <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">
-                      {new Date(log.sync_started_at).toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Status: {log.sync_status} | Users: {log.users_synced || 0} | Errors: {log.errors_count || 0}
-                    </p>
-                    {log.error_details && (
-                      <p className="text-sm text-red-600">{log.error_details}</p>
-                    )}
-                  </div>
-                  <div className={`px-2 py-1 rounded text-xs font-medium ${
-                    log.sync_status === 'completed' ? 'bg-green-100 text-green-800' :
-                    log.sync_status === 'failed' ? 'bg-red-100 text-red-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {log.sync_status}
-                  </div>
-                </div>
-              ))}
-              {syncLogs.length === 0 && (
-                <p className="text-gray-500 text-center py-4">No sync logs available</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <LdapConfigForm
+          settings={settings}
+          setSettings={setSettings}
+          updateSetting={updateSetting}
+          testLdapConnection={testLdapConnection}
+          triggerLdapSync={triggerLdapSync}
+          isSyncing={isSyncing}
+        />
+        <SyncHistoryCard syncLogs={syncLogs} />
       </div>
     </div>
   );
