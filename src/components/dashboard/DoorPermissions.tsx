@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -178,10 +179,13 @@ const DoorPermissions = () => {
 
   return (
     <div className="space-y-6">
+      {/* Removed the title and description as requested */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Door Permissions</h2>
-          <p className="text-gray-600">Manage role-based access control for doors</p>
+          {/* Removed: 
+                <h2 className="text-2xl font-bold text-gray-900">Door Permissions</h2>
+                <p className="text-gray-600">Manage role-based access control for doors</p>
+          */}
         </div>
         
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
