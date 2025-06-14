@@ -6,6 +6,10 @@ interface DoorCounts {
   [location: string]: number;
 }
 
+import SmtpLogs from './SmtpLogs';
+import SentEmailsLog from './SentEmailsLog';
+import AllSwipeLogs from './AllSwipeLogs';
+
 export default function DatabaseStatus() {
   const [userCount, setUserCount] = useState<number | null>(null);
   const [doorCount, setDoorCount] = useState<number | null>(null);
@@ -367,6 +371,16 @@ export default function DatabaseStatus() {
           ) : (
             <div className="text-red-600 font-mono">Not Connected</div>
           )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
+        <div>
+          <SmtpLogs />
+          <SentEmailsLog />
+        </div>
+        <div>
+          <AllSwipeLogs />
         </div>
       </div>
     </div>

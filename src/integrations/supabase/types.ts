@@ -17,6 +17,7 @@ export type Database = {
           ip_address: unknown | null
           notes: string | null
           pin_used: string | null
+          swipe_type: string | null
           timestamp: string
           user_id: string | null
         }
@@ -27,6 +28,7 @@ export type Database = {
           ip_address?: unknown | null
           notes?: string | null
           pin_used?: string | null
+          swipe_type?: string | null
           timestamp?: string
           user_id?: string | null
         }
@@ -37,6 +39,7 @@ export type Database = {
           ip_address?: unknown | null
           notes?: string | null
           pin_used?: string | null
+          swipe_type?: string | null
           timestamp?: string
           user_id?: string | null
         }
@@ -250,6 +253,98 @@ export type Database = {
           users_synced?: number | null
         }
         Relationships: []
+      }
+      sent_emails: {
+        Row: {
+          body: string | null
+          error_message: string | null
+          id: string
+          meta: Json | null
+          sent_at: string
+          smtp_log_id: string | null
+          status: string
+          subject: string
+          to_email: string
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          error_message?: string | null
+          id?: string
+          meta?: Json | null
+          sent_at?: string
+          smtp_log_id?: string | null
+          status: string
+          subject: string
+          to_email: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          error_message?: string | null
+          id?: string
+          meta?: Json | null
+          sent_at?: string
+          smtp_log_id?: string | null
+          status?: string
+          subject?: string
+          to_email?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sent_emails_smtp_log_id_fkey"
+            columns: ["smtp_log_id"]
+            isOneToOne: false
+            referencedRelation: "smtp_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sent_emails_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smtp_logs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+          status: string | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+          status?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+          status?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smtp_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       system_settings: {
         Row: {
