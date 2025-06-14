@@ -62,30 +62,59 @@ const UserCard = ({
                   {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                 </Badge>
               </div>
-              <div className="mt-2 flex items-center gap-2">
-                <span className="text-sm text-gray-600">Card Number:</span>
-                {editingCard && !user.disabled ? (
-                  <>
-                    <input
-                      className="border rounded px-2 py-1 text-sm w-36"
-                      value={cardInput}
-                      onChange={e => setCardInput(e.target.value)}
-                      onBlur={saveEdit}
-                      onKeyDown={e => { if (e.key === 'Enter') saveEdit(); }}
-                      autoFocus
-                    />
-                    <Button size="sm" variant="outline" onClick={saveEdit}>Save</Button>
-                  </>
-                ) : (
-                  <>
-                    <span className="font-mono text-blue-700">{user.card_number || "—"}</span>
-                    {!user.disabled && onCardNumberChange && (
-                      <Button size="sm" variant="ghost" onClick={() => setEditingCard(true)}>
-                        Edit
+              {/* Merge PIN and Card Number display */}
+              <div className="mt-2 flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Card Number:</span>
+                  {editingCard && !user.disabled ? (
+                    <>
+                      <input
+                        className="border rounded px-2 py-1 text-sm w-32"
+                        value={cardInput}
+                        onChange={e => setCardInput(e.target.value)}
+                        onBlur={saveEdit}
+                        onKeyDown={e => { if (e.key === 'Enter') saveEdit(); }}
+                        autoFocus
+                      />
+                      <Button size="sm" variant="outline" onClick={saveEdit}>Save</Button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-mono text-blue-700">{user.card_number || "—"}</span>
+                      {!user.disabled && onCardNumberChange && (
+                        <Button size="sm" variant="ghost" onClick={() => setEditingCard(true)}>
+                          Edit
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">PIN:</span>
+                  <span className="font-mono text-green-700">{user.pin || "—"}</span>
+                  {!user.disabled && !user.pin_disabled && (
+                    <>
+                      <Button
+                        onClick={() => onResetPin(user)}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center space-x-1"
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span>Reset PIN</span>
                       </Button>
-                    )}
-                  </>
-                )}
+                      <Button
+                        onClick={() => onEmailPin(user)}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center space-x-1"
+                      >
+                        <Mail className="w-4 h-4" />
+                        <span>Email PIN</span>
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>

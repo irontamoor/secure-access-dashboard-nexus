@@ -1,9 +1,22 @@
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { Database, Users, DoorOpen, Activity, LogOut, AlertOctagon } from 'lucide-react';
+import { Database, Users, DoorOpen, Activity, LogOut, AlertOctagon, MailCheck, MailX, RefreshCw } from 'lucide-react';
+
+interface LdapSyncLog {
+  sync_started_at: string;
+  sync_completed_at: string | null;
+  sync_status: string;
+}
+
+interface FailedSmtpEmail {
+  id: string;
+  email: string;
+  error: string;
+  created_at: string;
+}
 
 const DatabaseStatus = () => {
   const [stats, setStats] = useState({
@@ -15,9 +28,22 @@ const DatabaseStatus = () => {
     failedUsers: 0,
   });
 
+  // new
+  const [ldapSync, setLdapSync] = useState<LdapSyncLog | null>(null);
+  const [smtpConnected, setSmtpConnected] = useState<boolean | null>(null);
+  const [failedEmails, setFailedEmails] = useState<FailedSmtpEmail[]>([]);
+
   useEffect(() => {
     loadStats();
-    const interval = setInterval(loadStats, 30000); // Refresh every 30 seconds
+    fetchLdapSyncLog();
+    checkSmtpStatus();
+    fetchFailedEmails();
+    const interval = setInterval(() => {
+      loadStats();
+      fetchLdapSyncLog();
+      checkSmtpStatus();
+      fetchFailedEmails();
+    }, 30000); // 30s
     return () => clearInterval(interval);
   }, []);
 
@@ -62,6 +88,36 @@ const DatabaseStatus = () => {
       console.error('Database error:', error);
       setStats(prev => ({ ...prev, isConnected: false }));
     }
+  };
+
+  // Fetch last LDAP sync
+  const fetchLdapSyncLog = async () => {
+    const { data } = await supabase
+      .from('ldap_sync_log')
+      .select('sync_started_at,sync_completed_at,sync_status')
+      .order('sync_started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setLdapSync(data || null);
+  };
+
+  // Dummy SMTP status: assume SMTP config is stored as a system setting
+  const checkSmtpStatus = async () => {
+    const { data } = await supabase
+      .from('system_settings')
+      .select('setting_key,setting_value')
+      .eq('setting_key', 'smtp_host')
+      .maybeSingle();
+    setSmtpConnected(!!(data && data.setting_value));
+  };
+
+  // Dummy: Fetch failed emails (mock - adapt if you have an actual table)
+  const fetchFailedEmails = async () => {
+    // Replace with real query if available
+    // eg: const { data } = await supabase.from('email_error_log').select('*').limit(5);
+    setFailedEmails([
+      // { id: '1', email: 'john@example.com', error: 'SMTP server not responding', created_at: new Date().toISOString() }
+    ]);
   };
 
   return (
@@ -121,7 +177,8 @@ const DatabaseStatus = () => {
           <p className="text-xs text-gray-500">Access attempts today</p>
         </CardContent>
       </Card>
-      {/* New Card: Signed in users */}
+
+      {/* Signed in users today */}
       <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
@@ -134,7 +191,7 @@ const DatabaseStatus = () => {
           <p className="text-xs text-gray-500">Access granted today</p>
         </CardContent>
       </Card>
-      {/* New Card: Users failed access */}
+      {/* Failed access */}
       <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
@@ -147,8 +204,85 @@ const DatabaseStatus = () => {
           <p className="text-xs text-gray-500">Access denied today</p>
         </CardContent>
       </Card>
+
+      {/* Last LDAP Sync */}
+      <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg col-span-2">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Last LDAP Sync
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {ldapSync ? (
+            <div>
+              <Badge variant={ldapSync.sync_status === "completed" ? "default" : ldapSync.sync_status === "failed" ? "destructive" : "secondary"}>
+                {ldapSync.sync_status}
+              </Badge>
+              <div className="text-xs mt-2 text-gray-700">
+                {ldapSync.sync_completed_at ? (
+                  <>Last completed: {new Date(ldapSync.sync_completed_at).toLocaleString()}</>
+                ) : (
+                  <>Started: {new Date(ldapSync.sync_started_at).toLocaleString()}</>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-gray-500">No sync info</div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* SMTP Connection */}
+      <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg col-span-2">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+            <MailCheck className="w-4 h-4" />
+            SMTP Connection
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Badge variant={smtpConnected ? "default" : "destructive"}>
+            {smtpConnected === null ? "Unknown" : smtpConnected ? "Connected" : "Not Connected"}
+          </Badge>
+          <p className="text-xs text-gray-500 mt-1">
+            {smtpConnected
+              ? "SMTP settings detected"
+              : "No SMTP configuration found"}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Failed SMTP Emails */}
+      <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg col-span-2">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+            <MailX className="w-4 h-4" />
+            Failed SMTP Emails
+          </CardTitle>
+          <CardDescription>
+            Recent email failures
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {failedEmails.length === 0 ? (
+            <div className="text-xs text-gray-500">No failed emails.</div>
+          ) : (
+            <ul className="space-y-2">
+              {failedEmails.map(email => (
+                <li key={email.id} className="text-xs text-red-700">
+                  <span className="font-mono">{email.email}</span> &nbsp;
+                  <span>{email.error}</span>
+                  <span className="ml-1 text-gray-400">{new Date(email.created_at).toLocaleString()}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
 export default DatabaseStatus;
+

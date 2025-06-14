@@ -79,27 +79,37 @@ const UserManagement = () => {
     name: string;
     role: 'admin' | 'staff';
     pin: string;
-    card_number?: string | null;
+    card_number?: string;
   }) => {
-    if (!username || !email || !name || !pin) {
+    // Uniqueness check (client-side, but DB also enforces)
+    if (users.some(u => !u.disabled && u.card_number === card_number)) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "This card number is already assigned to another enabled user.",
         variant: "destructive",
       });
-      return;
+      return false;
+    }
+
+    if (!username || !email || !name || !pin || !card_number) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields, including card number.",
+        variant: "destructive",
+      });
+      return false;
     }
 
     try {
       const { data, error } = await supabase
         .from('users')
         .insert([{
-          username: username,
-          email: email,
-          name: name,
-          role: role,
-          pin: pin,
-          card_number: card_number || null
+          username,
+          email,
+          name,
+          role,
+          pin,
+          card_number
         }])
         .select()
         .single();
@@ -114,21 +124,22 @@ const UserManagement = () => {
       setUsers(prev => [...prev, transformedData]);
       setNewUser({ username: '', email: '', name: '', role: 'staff', pin: '', card_number: '' });
       setIsCreateDialogOpen(false);
-      
+
       toast({
         title: "User Created",
         description: `User ${data.name} has been created successfully`,
       });
 
-      // Send PIN by email
       sendWelcomeEmail(transformedData);
-    } catch (error) {
+      return true;
+    } catch (error: any) {
       console.error('Error creating user:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to create user",
         variant: "destructive",
       });
+      return false;
     }
   };
 
@@ -312,9 +323,9 @@ const UserManagement = () => {
           open={isCreateDialogOpen}
           setOpen={setIsCreateDialogOpen}
           onCreate={handleCreateUser}
-          // Pass card_number prop to CreateUserDialog:
           cardNumber={newUser.card_number}
           setCardNumber={val => setNewUser(prev => ({ ...prev, card_number: val }))}
+          existingUsers={users}
         />
       </div>
       <div className="grid gap-4">

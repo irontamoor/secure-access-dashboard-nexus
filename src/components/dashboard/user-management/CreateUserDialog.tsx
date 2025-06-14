@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -7,14 +6,16 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserPlus } from 'lucide-react';
 import type { User as UserType } from '@/types/database';
+import { useToast } from '@/hooks/use-toast';
 
 interface CreateUserDialogProps {
   open: boolean;
   setOpen: (b: boolean) => void;
   loading?: boolean;
-  onCreate: (data: Omit<UserType, 'id' | 'created_at' | 'updated_at' | 'last_access' | 'last_door_entry' | 'last_entry_time' | 'ldap_dn'>) => void;
+  onCreate: (data: Omit<UserType, 'id' | 'created_at' | 'updated_at' | 'last_access' | 'last_door_entry' | 'last_entry_time' | 'ldap_dn'>) => Promise<boolean>;
   cardNumber: string;
   setCardNumber: (val: string) => void;
+  existingUsers?: UserType[];
 }
 
 const initialState = {
@@ -25,6 +26,8 @@ const initialState = {
   pin: ''
 };
 
+type UserFormError = { field: string; message: string };
+
 const CreateUserDialog = ({
   open,
   setOpen,
@@ -32,14 +35,18 @@ const CreateUserDialog = ({
   onCreate,
   cardNumber,
   setCardNumber,
+  existingUsers = [],
 }: CreateUserDialogProps) => {
   const [fields, setFields] = useState(initialState);
+  const [error, setError] = useState<UserFormError | null>(null);
+  const { toast } = useToast();
 
   // Reset cardNumber and fields on dialog open
   useEffect(() => {
     if (!open) {
       setFields(initialState);
       setCardNumber('');
+      setError(null);
     }
   }, [open, setCardNumber]);
 
@@ -48,11 +55,38 @@ const CreateUserDialog = ({
     setFields(prev => ({ ...prev, pin }));
   };
 
-  const handleCreate = () => {
-    if (!fields.username || !fields.email || !fields.name || !fields.pin) return;
-    onCreate({ ...fields, card_number: cardNumber });
+  // Check uniqueness of card_number among enabled users
+  const isCardNumberUnique = (test: string) => {
+    return !existingUsers.some(
+      (u) => !u.disabled && u.card_number === test
+    );
+  };
+
+  const handleCreate = async () => {
+    setError(null);
+
+    if (!fields.username || !fields.email || !fields.name || !fields.pin) {
+      setError({ field: "all", message: "Please fill in all required fields, including PIN." });
+      return;
+    }
+    if (!cardNumber) {
+      setError({ field: "card_number", message: "Card number is required." });
+      return;
+    }
+    if (!isCardNumberUnique(cardNumber)) {
+      setError({ field: "card_number", message: "This card number is already used by another enabled user." });
+      return;
+    }
+
+    const success = await onCreate({ ...fields, card_number: cardNumber });
+    if (!success) {
+      // Error toast handled in parent, but for safety:
+      setError({ field: "server", message: "Failed to create user." });
+      return;
+    }
     setFields(initialState);
     setCardNumber('');
+    setError(null);
   };
 
   return (
@@ -78,6 +112,7 @@ const CreateUserDialog = ({
               value={fields.username}
               onChange={(e) => setFields(prev => ({ ...prev, username: e.target.value }))}
               placeholder="Enter username"
+              required
             />
           </div>
           <div>
@@ -88,6 +123,7 @@ const CreateUserDialog = ({
               value={fields.email}
               onChange={(e) => setFields(prev => ({ ...prev, email: e.target.value }))}
               placeholder="Enter email address"
+              required
             />
           </div>
           <div>
@@ -97,6 +133,7 @@ const CreateUserDialog = ({
               value={fields.name}
               onChange={(e) => setFields(prev => ({ ...prev, name: e.target.value }))}
               placeholder="Enter full name"
+              required
             />
           </div>
           <div>
@@ -120,6 +157,7 @@ const CreateUserDialog = ({
                 onChange={(e) => setFields(prev => ({ ...prev, pin: e.target.value.slice(0, 4) }))}
                 placeholder="1234"
                 maxLength={4}
+                required
               />
               <Button type="button" onClick={handleGeneratePin} variant="outline">
                 Generate
@@ -133,8 +171,12 @@ const CreateUserDialog = ({
               value={cardNumber}
               onChange={(e) => setCardNumber(e.target.value)}
               placeholder="Enter card number"
+              required
             />
           </div>
+          {error && (
+            <div className="text-red-500 text-sm">{error.message}</div>
+          )}
           <Button onClick={handleCreate} className="w-full" disabled={loading}>
             Create User &amp; Send Email
           </Button>
@@ -144,4 +186,3 @@ const CreateUserDialog = ({
   );
 };
 export default CreateUserDialog;
-
