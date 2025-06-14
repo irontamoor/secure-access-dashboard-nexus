@@ -28,43 +28,41 @@ const NoSwipeOutCard = ({ settings, setSettings, updateSetting }: Props) => (
         <h4 className="font-medium text-blue-800 mb-2">Alert Triggers:</h4>
         <ul className="text-sm text-blue-700 space-y-1">
           <li>
-            • User enters but doesn't exit within configured time
+            • User enters but doesn't exit by the configured alert time
             {" "}
-            <span className="font-medium text-blue-900">(currently: {settings.no_swipe_out_threshold_hours || 2} hours)</span>
+            <span className="font-medium text-blue-900">(currently: {settings.no_swipe_out_alert_time || "18:00"})</span>
           </li>
           <li>• Building security hours end with users still inside</li>
           <li>• Emergency evacuation protocols activated</li>
         </ul>
         <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-          <Label htmlFor="no_swipe_out_threshold_hours">
-            Threshold (hours before alert):
+          <Label htmlFor="no_swipe_out_alert_time">
+            Alert time (users remaining past this time trigger an alert):
           </Label>
           <Input
-            id="no_swipe_out_threshold_hours"
-            type="number"
-            min={1}
-            step={1}
+            id="no_swipe_out_alert_time"
+            type="time"
             className="w-32"
-            value={settings.no_swipe_out_threshold_hours || ''}
+            value={settings.no_swipe_out_alert_time || ''}
             onChange={e =>
               setSettings(prev => ({
                 ...prev,
-                no_swipe_out_threshold_hours: e.target.value.replace(/[^0-9]/g, ''),
+                no_swipe_out_alert_time: e.target.value,
               }))
             }
             onBlur={e => {
-              const val = e.target.value.trim() || '2';
-              if (val !== settings.no_swipe_out_threshold_hours) {
-                updateSetting("no_swipe_out_threshold_hours", val);
+              const val = e.target.value.trim() || '18:00';
+              if (val !== settings.no_swipe_out_alert_time) {
+                updateSetting("no_swipe_out_alert_time", val);
               }
             }}
-            placeholder="2"
+            placeholder="18:00"
           />
           <Button
             size="sm"
             variant="outline"
             onClick={() => {
-              updateSetting("no_swipe_out_threshold_hours", settings.no_swipe_out_threshold_hours || '2');
+              updateSetting("no_swipe_out_alert_time", settings.no_swipe_out_alert_time || '18:00');
             }}
             className="ml-2"
           >
@@ -86,7 +84,7 @@ User: [USER_NAME] ([USERNAME])
 Door: [DOOR_NAME] at [LOCATION]
 Entry Time: [ENTRY_TIMESTAMP]
 Current Time: [CURRENT_TIMESTAMP]
-Duration: [DURATION] (Threshold: ${settings.no_swipe_out_threshold_hours || 2} hours)
+Alert Time: ${settings.no_swipe_out_alert_time || "18:00"}
 
 Please verify the user's location and status.
 

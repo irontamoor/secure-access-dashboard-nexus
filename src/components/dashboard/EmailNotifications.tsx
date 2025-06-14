@@ -37,7 +37,7 @@ const EmailNotifications = () => {
           'smtp_password',
           'smtp_from_email',
           'smtp_from_name',
-          'no_swipe_out_threshold_hours'
+          'no_swipe_out_alert_time'
         ]);
 
       if (error) throw error;
