@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +10,12 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Shield, Plus, Trash2, User, DoorOpen } from 'lucide-react';
 import type { User as DBUser, Door as DBDoor, DoorPermission } from '@/types/database';
+
+type DoorGroup = {
+  id: string;
+  name: string;
+  description?: string | null;
+};
 
 const DoorPermissions = () => {
   const { toast } = useToast();
@@ -25,10 +30,18 @@ const DoorPermissions = () => {
   });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [doorGroups, setDoorGroups] = useState<DoorGroup[]>([]);
+  const [permissionTarget, setPermissionTarget] = useState<'door' | 'door_group' | 'all_doors'>('door');
 
   useEffect(() => {
     loadData();
+    loadDoorGroups();
   }, []);
+
+  const loadDoorGroups = async () => {
+    const { data, error } = await supabase.from('door_groups').select('*').order('name');
+    if (!error && data) setDoorGroups(data);
+  };
 
   const loadData = async () => {
     try {
@@ -66,53 +79,52 @@ const DoorPermissions = () => {
   };
 
   const createPermission = async () => {
-    if (!newPermission.user_id || !newPermission.door_id) {
-      toast({
-        title: "Error",
-        description: "Please select both user and door",
-        variant: "destructive",
-      });
+    if (!newPermission.user_id) {
+      toast({ title: "Error", description: "Please select a user", variant: "destructive" });
       return;
+    }
+
+    let insertObj: any = {
+      user_id: newPermission.user_id,
+      access_granted: true,
+      expires_at: newPermission.expires_at || null,
+      notes: newPermission.notes || null
+    };
+
+    if (permissionTarget === 'all_doors') {
+      insertObj = { ...insertObj, all_doors: true, door_id: null, door_group_id: null };
+    } else if (permissionTarget === 'door_group') {
+      if (!newPermission.door_id) {
+        toast({ title: "Error", description: "Select a group", variant: "destructive" });
+        return;
+      }
+      insertObj = { ...insertObj, all_doors: false, door_group_id: newPermission.door_id, door_id: null };
+    } else if (permissionTarget === 'door') {
+      if (!newPermission.door_id) {
+        toast({ title: "Error", description: "Select a door", variant: "destructive" });
+        return;
+      }
+      insertObj = { ...insertObj, all_doors: false, door_id: newPermission.door_id, door_group_id: null };
     }
 
     try {
       const { data, error } = await supabase
         .from('door_permissions')
-        .insert([{
-          user_id: newPermission.user_id,
-          door_id: newPermission.door_id,
-          access_granted: true,
-          expires_at: newPermission.expires_at || null,
-          notes: newPermission.notes || null
-        }])
+        .insert([insertObj])
         .select('*')
         .maybeSingle();
-
       if (error) throw error;
       if (!data) {
-        toast({
-          title: "Error",
-          description: "Permission was not returned from server",
-          variant: "destructive"
-        });
+        toast({ title: "Error", description: "Permission was not returned from server", variant: "destructive" });
         return;
       }
-
       setPermissions(prev => [data, ...prev]);
       setNewPermission({ user_id: '', door_id: '', expires_at: '', notes: '' });
       setIsCreateDialogOpen(false);
-      
-      toast({
-        title: "Permission Created",
-        description: "Door access permission has been granted successfully",
-      });
+      setPermissionTarget('door');
+      toast({ title: "Permission Created", description: "Door access permission granted." });
     } catch (error) {
-      console.error('Error creating permission:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create door permission",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to create door permission", variant: "destructive" });
     }
   };
 
@@ -153,6 +165,20 @@ const DoorPermissions = () => {
   const getUserById = (uid: string) => users.find(u => u.id === uid);
   const getDoorById = (did: string) => doors.find(d => d.id === did);
 
+  // For each permission, find the target type and label
+  const getPermissionTarget = (perm: DoorPermission) => {
+    if (perm.all_doors) return { type: 'all_doors', label: 'All Doors' };
+    if (perm.door_group_id) {
+      const group = doorGroups.find(g => g.id === perm.door_group_id);
+      return { type: 'door_group', label: group ? `Group: ${group.name}` : "Group (unknown)" };
+    }
+    if (perm.door_id) {
+      const door = getDoorById(perm.door_id);
+      return { type: 'door', label: door ? `Door: ${door.name}` : "Door (unknown)" };
+    }
+    return { type: 'unknown', label: 'Unknown' };
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -172,7 +198,7 @@ const DoorPermissions = () => {
             <DialogHeader>
               <DialogTitle>Grant Door Access</DialogTitle>
               <DialogDescription>
-                Grant a user access to a specific door
+                Grant a user access to a specific door, door group or all doors.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -192,20 +218,52 @@ const DoorPermissions = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="door">Door</Label>
-                <Select value={newPermission.door_id} onValueChange={(value) => setNewPermission(prev => ({ ...prev, door_id: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select door" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {doors.map((door) => (
-                      <SelectItem key={door.id} value={door.id}>
-                        {door.name} - {door.location}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Target</Label>
+                <div className="flex gap-2">
+                  <Button variant={permissionTarget === 'all_doors' ? "default" : "outline"} size="sm" onClick={() => setPermissionTarget('all_doors')}>All Doors</Button>
+                  <Button variant={permissionTarget === 'door_group' ? "default" : "outline"} size="sm" onClick={() => setPermissionTarget('door_group')}>Group</Button>
+                  <Button variant={permissionTarget === 'door' ? "default" : "outline"} size="sm" onClick={() => setPermissionTarget('door')}>Door</Button>
+                </div>
               </div>
+
+              {/* Show select for door group or door */}
+              {permissionTarget === 'door_group' && (
+                <div>
+                  <Label htmlFor="doorGroup">Door Group</Label>
+                  <select
+                    id="doorGroup"
+                    className="w-full border rounded px-2 py-1"
+                    value={newPermission.door_id}
+                    onChange={e => setNewPermission(prev => ({ ...prev, door_id: e.target.value }))}
+                  >
+                    <option value="">Select group</option>
+                    {doorGroups.map((group) => (
+                      <option value={group.id} key={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {permissionTarget === 'door' && (
+                <div>
+                  <Label htmlFor="door">Door</Label>
+                  <select
+                    id="door"
+                    className="w-full border rounded px-2 py-1"
+                    value={newPermission.door_id}
+                    onChange={e => setNewPermission(prev => ({ ...prev, door_id: e.target.value }))}
+                  >
+                    <option value="">Select door</option>
+                    {doors.map((door) => (
+                      <option value={door.id} key={door.id}>
+                        {door.name} - {door.location}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <Label htmlFor="expires_at">Expiry Date (Optional)</Label>
                 <Input
@@ -232,10 +290,11 @@ const DoorPermissions = () => {
         </Dialog>
       </div>
 
+      {/* PERMISSION LIST */}
       <div className="grid gap-4">
         {permissions.map((permission) => {
           const user = getUserById(permission.user_id);
-          const door = getDoorById(permission.door_id);
+          const target = getPermissionTarget(permission);
           return (
             <Card key={permission.id} className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
               <CardContent className="p-6">
@@ -252,17 +311,10 @@ const DoorPermissions = () => {
                       </div>
                       <div className="flex items-center space-x-2 mt-1">
                         <DoorOpen className="w-4 h-4 text-gray-500" />
-                        <span>{door ? `${door.name} - ${door.location}` : "Unknown door"}</span>
+                        <span>{target.type === 'door' && doors.find(d => d.id === permission.door_id) ? `${doors.find(d => d.id === permission.door_id)?.name} - ${doors.find(d => d.id === permission.door_id)?.location}` : "Unknown door"}</span>
                       </div>
-                      <div className="flex items-center space-x-2 mt-2">
-                        <Badge variant={permission.access_granted ? 'default' : 'destructive'}>
-                          {permission.access_granted ? 'Granted' : 'Denied'}
-                        </Badge>
-                        {permission.expires_at && (
-                          <Badge variant={isExpired(permission.expires_at) ? 'destructive' : 'secondary'}>
-                            {isExpired(permission.expires_at) ? 'Expired' : 'Expires'}: {new Date(permission.expires_at).toLocaleDateString()}
-                          </Badge>
-                        )}
+                      <div className="flex items-center space-x-2 mt-1">
+                        <Badge variant="outline">{target.label}</Badge>
                       </div>
                       {permission.notes && (
                         <p className="text-sm text-gray-600 mt-1">{permission.notes}</p>

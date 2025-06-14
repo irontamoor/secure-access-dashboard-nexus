@@ -57,9 +57,68 @@ export type Database = {
           },
         ]
       }
+      door_group_members: {
+        Row: {
+          door_id: string
+          group_id: string
+          id: string
+        }
+        Insert: {
+          door_id: string
+          group_id: string
+          id?: string
+        }
+        Update: {
+          door_id?: string
+          group_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "door_group_members_door_id_fkey"
+            columns: ["door_id"]
+            isOneToOne: false
+            referencedRelation: "doors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "door_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "door_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      door_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       door_permissions: {
         Row: {
           access_granted: boolean
+          all_doors: boolean
+          door_group_id: string | null
           door_id: string | null
           expires_at: string | null
           granted_at: string
@@ -70,6 +129,8 @@ export type Database = {
         }
         Insert: {
           access_granted?: boolean
+          all_doors?: boolean
+          door_group_id?: string | null
           door_id?: string | null
           expires_at?: string | null
           granted_at?: string
@@ -80,6 +141,8 @@ export type Database = {
         }
         Update: {
           access_granted?: boolean
+          all_doors?: boolean
+          door_group_id?: string | null
           door_id?: string | null
           expires_at?: string | null
           granted_at?: string
@@ -89,6 +152,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "door_permissions_door_group_id_fkey"
+            columns: ["door_group_id"]
+            isOneToOne: false
+            referencedRelation: "door_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "door_permissions_door_id_fkey"
             columns: ["door_id"]
