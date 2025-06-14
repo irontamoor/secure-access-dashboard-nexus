@@ -1,5 +1,9 @@
 
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
+import { 
+  AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel,
+  AlertDialogAction 
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Delete as DeleteIcon } from "lucide-react";
 
@@ -23,12 +27,13 @@ export default function UserDeleteDialog({ onDelete, children }: UserDeleteDialo
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onDelete} className="bg-destructive text-white">
-            <DeleteIcon className="w-4 h-4 mr-1" />
-            Delete
+          <AlertDialogAction onClick={onDelete} className="bg-destructive text-white flex items-center space-x-2">
+            <DeleteIcon className="w-5 h-5" />
+            <span>Delete</span>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 }
+

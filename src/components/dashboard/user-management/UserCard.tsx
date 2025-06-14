@@ -115,9 +115,9 @@ const UserCard = ({
                 <Button 
                   size="sm"
                   variant="destructive"
-                  className="flex items-center space-x-1"
+                  className="flex items-center space-x-2"
                 >
-                  <DeleteIcon className="w-4 h-4" />
+                  <DeleteIcon className="w-5 h-5" />
                   <span>Delete</span>
                 </Button>
               </UserDeleteDialog>
@@ -130,3 +130,4 @@ const UserCard = ({
 );
 
 export default UserCard;
+
