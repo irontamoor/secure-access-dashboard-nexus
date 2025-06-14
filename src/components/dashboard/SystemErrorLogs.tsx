@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 type LdapErrorLog = {
@@ -25,7 +25,41 @@ type SentEmailError = {
   error_message: string | null;
 };
 
-export default function SystemErrorLogs() {
+function convertToCsv(ldap: LdapErrorLog[], smtp: SmtpErrorLog[], email: SentEmailError[], dbError: string|null) {
+  let arr: string[] = [];
+  if (dbError) {
+    arr.push("DATABASE ERROR:");
+    arr.push(dbError);
+    arr.push("");
+  }
+  if (ldap.length) {
+    arr.push("LDAP SYNC ISSUES");
+    arr.push("Time,Error");
+    arr.push(...ldap.map(l =>
+      `"${new Date(l.sync_started_at).toLocaleString()}","${(l.error_details||'Unknown error').replace(/"/g,'""')}"`
+    ));
+    arr.push("");
+  }
+  if (smtp.length) {
+    arr.push("SMTP ERRORS");
+    arr.push("Time,Event,Status,Details");
+    arr.push(...smtp.map(e =>
+      `"${new Date(e.timestamp).toLocaleString()}","${e.event_type}","${e.status || '—'}","${e.details ? JSON.stringify(e.details).replace(/"/g, '""') : "—"}"`
+    ));
+    arr.push("");
+  }
+  if (email.length) {
+    arr.push("EMAIL SEND FAILURES");
+    arr.push("Time,To,Subject,Status,Error");
+    arr.push(...email.map(e =>
+      `"${new Date(e.sent_at).toLocaleString()}","${e.to_email}","${e.subject}","${e.status}","${e.error_message?.replace(/"/g, '""') || "—"}"`
+    ));
+  }
+  return arr.join('\r\n');
+}
+
+const SystemErrorLogs = forwardRef<{ getCsv: () => string }, { hideExport?: boolean }>(
+function SystemErrorLogs({ hideExport = false }, ref) {
   const [ldapErrors, setLdapErrors] = useState<LdapErrorLog[]>([]);
   const [smtpErrors, setSmtpErrors] = useState<SmtpErrorLog[]>([]);
   const [emailErrors, setEmailErrors] = useState<SentEmailError[]>([]);
@@ -34,7 +68,6 @@ export default function SystemErrorLogs() {
 
   useEffect(() => {
     setLoading(true);
-    // LDAP errors: failed logs in ldap_sync_log
     supabase
       .from('ldap_sync_log')
       .select('*')
@@ -43,7 +76,6 @@ export default function SystemErrorLogs() {
       .limit(10)
       .then(({ data }) => setLdapErrors(data || []));
 
-    // SMTP error events: in smtp_logs where status indicates failure, or event_type=error
     supabase
       .from('smtp_logs')
       .select('*')
@@ -52,7 +84,6 @@ export default function SystemErrorLogs() {
       .limit(10)
       .then(({ data }) => setSmtpErrors(data || []));
 
-    // Sent Email Failures: sent_emails where status != sent
     supabase
       .from('sent_emails')
       .select('*')
@@ -61,7 +92,6 @@ export default function SystemErrorLogs() {
       .limit(10)
       .then(({ data }) => setEmailErrors(data || []));
 
-    // Quick DB check: select returns error if not connected
     supabase
       .from('users')
       .select('id', { count: 'exact', head: true })
@@ -72,6 +102,10 @@ export default function SystemErrorLogs() {
       });
   }, []);
 
+  useImperativeHandle(ref, () => ({
+    getCsv: () => convertToCsv(ldapErrors, smtpErrors, emailErrors, dbError),
+  }));
+
   return (
     <div>
       <h3 className="font-bold text-xl mb-3 text-gray-800">System Errors</h3>
@@ -79,7 +113,6 @@ export default function SystemErrorLogs() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <div className="space-y-6">
-          {/* Database Error */}
           <div>
             <div className="font-semibold text-gray-700">Database Connection</div>
             {dbError ? (
@@ -92,7 +125,6 @@ export default function SystemErrorLogs() {
               </div>
             )}
           </div>
-          {/* LDAP Errors */}
           <div>
             <div className="font-semibold text-gray-700">LDAP Sync Issues</div>
             {ldapErrors.length === 0 ? (
@@ -116,7 +148,6 @@ export default function SystemErrorLogs() {
               </table>
             )}
           </div>
-          {/* SMTP Errors */}
           <div>
             <div className="font-semibold text-gray-700">SMTP Errors</div>
             {smtpErrors.length === 0 ? (
@@ -144,7 +175,6 @@ export default function SystemErrorLogs() {
               </table>
             )}
           </div>
-          {/* Email send errors */}
           <div>
             <div className="font-semibold text-gray-700">Email Send Failures</div>
             {emailErrors.length === 0 ? (
@@ -178,4 +208,6 @@ export default function SystemErrorLogs() {
       )}
     </div>
   );
-}
+});
+
+export default SystemErrorLogs;

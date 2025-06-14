@@ -14,6 +14,7 @@ import SmtpLogs from './SmtpLogs';
 import AllSwipeLogs from './AllSwipeLogs';
 import SystemErrorLogs from './SystemErrorLogs';
 import type { User } from '@/types/database';
+import LogDashboardTab from './LogDashboardTab';
 
 interface AdminDashboardProps {
   user: User;
@@ -32,8 +33,8 @@ const AdminDashboard = ({ user, onLogout }) => {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="doors">Doors</TabsTrigger>
-            <TabsTrigger value="logs">Activity</TabsTrigger>
-            <TabsTrigger value="email-logs">Logs</TabsTrigger>
+            <TabsTrigger value="logs">Logs</TabsTrigger>
+            <TabsTrigger value="email-logs">Email Logs</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="database">Database</TabsTrigger>
             <TabsTrigger value="system">System</TabsTrigger>
@@ -48,7 +49,7 @@ const AdminDashboard = ({ user, onLogout }) => {
             <DoorManagement />
           </TabsContent>
           <TabsContent value="logs">
-            <ActivityLogs isAdmin={true} userId={user.id} />
+            <LogDashboardTab />
           </TabsContent>
           <TabsContent value="email-logs">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
