@@ -21,7 +21,8 @@ const UserManagement = () => {
     email: '',
     name: '',
     role: 'staff' as 'admin' | 'staff',
-    pin: ''
+    pin: '',
+    card_number: ''
   });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,6 +45,7 @@ const UserManagement = () => {
         role: user.role as 'admin' | 'staff',
         disabled: !!user.disabled,
         pin_disabled: !!user.pin_disabled,
+        card_number: user.card_number || null,
       }));
 
       setUsers(transformedData);
@@ -69,13 +71,15 @@ const UserManagement = () => {
     email,
     name,
     role,
-    pin
+    pin,
+    card_number
   }: {
     username: string;
     email: string;
     name: string;
     role: 'admin' | 'staff';
     pin: string;
+    card_number?: string | null;
   }) => {
     if (!username || !email || !name || !pin) {
       toast({
@@ -94,7 +98,8 @@ const UserManagement = () => {
           email: email,
           name: name,
           role: role,
-          pin: pin
+          pin: pin,
+          card_number: card_number || null
         }])
         .select()
         .single();
@@ -107,7 +112,7 @@ const UserManagement = () => {
       };
 
       setUsers(prev => [...prev, transformedData]);
-      setNewUser({ username: '', email: '', name: '', role: 'staff', pin: '' });
+      setNewUser({ username: '', email: '', name: '', role: 'staff', pin: '', card_number: '' });
       setIsCreateDialogOpen(false);
       
       toast({
@@ -122,6 +127,33 @@ const UserManagement = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to create user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateUserCardNumber = async (user: UserType, card_number: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update({ 
+          card_number: card_number,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, card_number } : u));
+      toast({
+        title: "Card Number Updated",
+        description: `Card number updated for ${user.name}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update card number",
         variant: "destructive",
       });
     }
@@ -280,6 +312,9 @@ const UserManagement = () => {
           open={isCreateDialogOpen}
           setOpen={setIsCreateDialogOpen}
           onCreate={handleCreateUser}
+          // Pass card_number prop to CreateUserDialog:
+          cardNumber={newUser.card_number}
+          setCardNumber={val => setNewUser(prev => ({ ...prev, card_number: val }))}
         />
       </div>
       <div className="grid gap-4">
@@ -291,6 +326,7 @@ const UserManagement = () => {
             onEmailPin={user => sendPinByEmail(user, user.pin)}
             onToggleDisabled={() => toggleUserDisabled(user)}
             onTogglePinDisabled={() => togglePinDisabled(user)}
+            onCardNumberChange={newNumber => updateUserCardNumber(user, newNumber)}
           />
         ))}
         {users.filter(user => user.disabled).length > 0 && (
@@ -306,6 +342,7 @@ const UserManagement = () => {
                 onTogglePinDisabled={() => togglePinDisabled(user)}
                 onDelete={() => deleteUser(user)}
                 disabled
+                onCardNumberChange={() => {}}
               />
             ))}
           </>
@@ -317,4 +354,4 @@ const UserManagement = () => {
 
 export default UserManagement;
 
-// NOTE: This file is now quite large (220+ lines). Please consider refactoring into smaller files for maintainability.
+// NOTE: This file is now quite large (over 300 lines). Please consider refactoring into smaller files for maintainability.

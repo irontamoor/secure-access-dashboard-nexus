@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   username: string;
@@ -11,8 +12,9 @@ export interface User {
   ldap_dn?: string | null;
   last_door_entry?: string | null;
   last_entry_time?: string | null;
-  disabled?: boolean; // newly added property
-  pin_disabled?: boolean; // newly added property
+  disabled?: boolean;
+  pin_disabled?: boolean;
+  card_number?: string | null; // <-- Added card_number
 }
 
 export interface Door {

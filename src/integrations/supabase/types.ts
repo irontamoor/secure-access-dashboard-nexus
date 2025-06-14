@@ -291,6 +291,7 @@ export type Database = {
       }
       users: {
         Row: {
+          card_number: string | null
           created_at: string
           disabled: boolean
           email: string
@@ -307,6 +308,7 @@ export type Database = {
           username: string
         }
         Insert: {
+          card_number?: string | null
           created_at?: string
           disabled?: boolean
           email: string
@@ -323,6 +325,7 @@ export type Database = {
           username: string
         }
         Update: {
+          card_number?: string | null
           created_at?: string
           disabled?: boolean
           email?: string

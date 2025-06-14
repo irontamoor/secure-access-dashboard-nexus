@@ -3,14 +3,16 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { Database, Users, DoorOpen, Activity } from 'lucide-react';
+import { Database, Users, DoorOpen, Activity, LogOut, AlertOctagon } from 'lucide-react';
 
 const DatabaseStatus = () => {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalDoors: 0,
     todayLogs: 0,
-    isConnected: false
+    isConnected: false,
+    signedInUsers: 0,
+    failedUsers: 0,
   });
 
   useEffect(() => {
@@ -21,21 +23,40 @@ const DatabaseStatus = () => {
 
   const loadStats = async () => {
     try {
-      // Test database connection and get stats
-      const [usersResult, doorsResult, logsResult] = await Promise.all([
+      const today = new Date().toISOString().split('T')[0];
+
+      const [
+        usersResult,
+        doorsResult,
+        logsResult,
+        signInUsersResult,
+        failedAccessResult
+      ] = await Promise.all([
         supabase.from('users').select('id', { count: 'exact' }),
         supabase.from('doors').select('id', { count: 'exact' }),
         supabase
           .from('access_logs')
           .select('id', { count: 'exact' })
-          .gte('timestamp', new Date().toISOString().split('T')[0])
+          .gte('timestamp', today),
+        supabase
+          .from('access_logs')
+          .select('user_id', { count: 'exact', head: false })
+          .eq('access_type', 'granted')
+          .gte('timestamp', today),
+        supabase
+          .from('access_logs')
+          .select('user_id', { count: 'exact', head: false })
+          .eq('access_type', 'denied')
+          .gte('timestamp', today),
       ]);
 
       setStats({
         totalUsers: usersResult.count || 0,
         totalDoors: doorsResult.count || 0,
         todayLogs: logsResult.count || 0,
-        isConnected: true
+        isConnected: true,
+        signedInUsers: signInUsersResult.count || 0,
+        failedUsers: failedAccessResult.count || 0,
       });
     } catch (error) {
       console.error('Database error:', error);
@@ -44,7 +65,7 @@ const DatabaseStatus = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-6">
       <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
@@ -98,6 +119,32 @@ const DatabaseStatus = () => {
         <CardContent>
           <div className="text-2xl font-bold text-purple-600">{stats.todayLogs}</div>
           <p className="text-xs text-gray-500">Access attempts today</p>
+        </CardContent>
+      </Card>
+      {/* New Card: Signed in users */}
+      <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+            <LogOut className="w-4 h-4" />
+            Users Signed In
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-emerald-600">{stats.signedInUsers}</div>
+          <p className="text-xs text-gray-500">Access granted today</p>
+        </CardContent>
+      </Card>
+      {/* New Card: Users failed access */}
+      <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+            <AlertOctagon className="w-4 h-4" />
+            Failed Access Attempts
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-red-600">{stats.failedUsers}</div>
+          <p className="text-xs text-gray-500">Access denied today</p>
         </CardContent>
       </Card>
     </div>
