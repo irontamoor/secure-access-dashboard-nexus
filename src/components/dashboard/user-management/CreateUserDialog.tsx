@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,8 @@ interface CreateUserDialogProps {
   setOpen: (b: boolean) => void;
   loading?: boolean;
   onCreate: (data: Omit<UserType, 'id' | 'created_at' | 'updated_at' | 'last_access' | 'last_door_entry' | 'last_entry_time' | 'ldap_dn'>) => void;
+  cardNumber: string;
+  setCardNumber: (val: string) => void;
 }
 
 const initialState = {
@@ -23,8 +25,23 @@ const initialState = {
   pin: ''
 };
 
-const CreateUserDialog = ({ open, setOpen, loading, onCreate }: CreateUserDialogProps) => {
+const CreateUserDialog = ({
+  open,
+  setOpen,
+  loading,
+  onCreate,
+  cardNumber,
+  setCardNumber,
+}: CreateUserDialogProps) => {
   const [fields, setFields] = useState(initialState);
+
+  // Reset cardNumber and fields on dialog open
+  useEffect(() => {
+    if (!open) {
+      setFields(initialState);
+      setCardNumber('');
+    }
+  }, [open, setCardNumber]);
 
   const handleGeneratePin = () => {
     const pin = Math.floor(1000 + Math.random() * 9000).toString();
@@ -33,8 +50,9 @@ const CreateUserDialog = ({ open, setOpen, loading, onCreate }: CreateUserDialog
 
   const handleCreate = () => {
     if (!fields.username || !fields.email || !fields.name || !fields.pin) return;
-    onCreate(fields);
+    onCreate({ ...fields, card_number: cardNumber });
     setFields(initialState);
+    setCardNumber('');
   };
 
   return (
@@ -108,6 +126,15 @@ const CreateUserDialog = ({ open, setOpen, loading, onCreate }: CreateUserDialog
               </Button>
             </div>
           </div>
+          <div>
+            <Label htmlFor="card-number">Card Number</Label>
+            <Input
+              id="card-number"
+              value={cardNumber}
+              onChange={(e) => setCardNumber(e.target.value)}
+              placeholder="Enter card number"
+            />
+          </div>
           <Button onClick={handleCreate} className="w-full" disabled={loading}>
             Create User &amp; Send Email
           </Button>
@@ -117,3 +144,4 @@ const CreateUserDialog = ({ open, setOpen, loading, onCreate }: CreateUserDialog
   );
 };
 export default CreateUserDialog;
+

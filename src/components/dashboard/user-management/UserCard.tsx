@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -81,7 +80,7 @@ const UserCard = ({
                   <>
                     <span className="font-mono text-blue-700">{user.card_number || "—"}</span>
                     {!user.disabled && onCardNumberChange && (
-                      <Button size="xs" variant="ghost" onClick={() => setEditingCard(true)}>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingCard(true)}>
                         Edit
                       </Button>
                     )}
