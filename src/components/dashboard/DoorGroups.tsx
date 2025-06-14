@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -41,7 +40,11 @@ const DoorGroups = () => {
   const loadDoors = async () => {
     const { data, error } = await supabase.from("doors").select("*").order("name");
     if (!error && data) {
-      setDoors(data as Door[]);
+      // Explicitly transform ip_address to string | null
+      setDoors((data as any[]).map((d) => ({
+        ...d,
+        ip_address: typeof d.ip_address === "string" ? d.ip_address : d.ip_address === null ? null : String(d.ip_address),
+      })));
     }
   };
 
@@ -56,8 +59,14 @@ const DoorGroups = () => {
 
       const { data: doorsRows } = await supabase.from("doors").select("*");
 
+      // FIX: Explicitly cast ip_address to correct type
       const doorsMap: { [id: string]: Door } = {};
-      (doorsRows || []).forEach((d: Door) => (doorsMap[d.id] = d));
+      (doorsRows || []).forEach((d: any) => {
+        doorsMap[d.id] = {
+          ...d,
+          ip_address: typeof d.ip_address === 'string' ? d.ip_address : d.ip_address === null ? null : String(d.ip_address),
+        };
+      });
 
       const groupList: DoorGroup[] = (groupRows || []).map((group: any) => ({
         ...group,

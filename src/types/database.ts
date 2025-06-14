@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   username: string;
@@ -50,12 +49,14 @@ export interface SystemSetting {
 export interface DoorPermission {
   id: string;
   user_id: string;
-  door_id: string;
+  door_id: string | null;
   access_granted: boolean;
   granted_by?: string | null;
   granted_at: string;
   expires_at?: string | null;
   notes?: string | null;
+  all_doors: boolean;
+  door_group_id: string | null;
 }
 
 export interface LdapSyncLog {
