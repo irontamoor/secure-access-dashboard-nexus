@@ -59,7 +59,7 @@ export default function ControllerApiKeyManager() {
     const { error } = await supabase
       .from("controller_api_keys")
       .update({ is_active: false })
-      .eq("id", id);
+      .eq("id", id as string);
     if (error) {
       toast({ title: "Failed to revoke key", description: error.message, variant: "destructive" });
     } else {
@@ -86,8 +86,8 @@ export default function ControllerApiKeyManager() {
             className="w-full md:w-1/2"
             disabled={loading}
           />
-          <Button onClick={handleCreateKey} loading={loading}>
-            Generate API Key
+          <Button onClick={handleCreateKey} disabled={loading}>
+            {loading ? "Generating..." : "Generate API Key"}
           </Button>
         </div>
         <div className="overflow-x-auto">
@@ -115,7 +115,7 @@ export default function ControllerApiKeyManager() {
                     <td className="p-2">{new Date(k.created_at).toLocaleString()}</td>
                     <td className="p-2">
                       {k.is_active && (
-                        <Button size="sm" onClick={() => handleRevoke(k.id)}>
+                        <Button size="sm" onClick={() => handleRevoke(k.id)} disabled={loading}>
                           Revoke
                         </Button>
                       )}

@@ -24,7 +24,7 @@ export default function CardSwipeHistory() {
     const { data } = await supabase
       .from("access_logs")
       .select("*")
-      .eq("card_number", searchCard)
+      .eq("card_number", searchCard as string)
       .order("timestamp", { ascending: false })
       .limit(50);
     setLogs(data || []);
@@ -53,8 +53,8 @@ export default function CardSwipeHistory() {
             onChange={(e) => setSearchCard(e.target.value)}
             className="w-auto"
           />
-          <Button type="submit" loading={loading}>
-            Search
+          <Button type="submit" disabled={loading}>
+            {loading ? "Searching..." : "Search"}
           </Button>
         </form>
         <div className="overflow-x-auto max-h-80">
