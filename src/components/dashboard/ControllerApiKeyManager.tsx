@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-type ControllerKey = {
+type ControllerApiKey = {
   id: string;
   controller_name: string;
   api_key: string;
@@ -15,13 +15,13 @@ type ControllerKey = {
 
 export default function ControllerApiKeyManager() {
   const { toast } = useToast();
-  const [keys, setKeys] = useState<ControllerKey[]>([]);
+  const [keys, setKeys] = useState<ControllerApiKey[]>([]);
   const [newName, setNewName] = useState("");
   const [loading, setLoading] = useState(false);
 
   const fetchKeys = async () => {
     const { data, error } = await supabase
-      .from("controller_api_keys")
+      .from<ControllerApiKey>("controller_api_keys")
       .select("*")
       .order("created_at", { ascending: false });
     if (error) {
@@ -56,9 +56,9 @@ export default function ControllerApiKeyManager() {
     if (!window.confirm("Are you sure? This will deactivate the API key.")) return;
     setLoading(true);
     const { error } = await supabase
-      .from("controller_api_keys")
+      .from<ControllerApiKey>("controller_api_keys")
       .update({ is_active: false })
-      .eq("id" as any, id);
+      .eq("id", id);
     if (error) {
       toast({ title: "Failed to revoke key", description: error.message, variant: "destructive" });
     } else {
