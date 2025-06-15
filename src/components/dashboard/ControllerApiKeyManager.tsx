@@ -21,7 +21,7 @@ export default function ControllerApiKeyManager() {
 
   const fetchKeys = async () => {
     const { data, error } = await supabase
-      .from("controller_api_keys")
+      .from<ControllerApiKey>("controller_api_keys")
       .select("*")
       .order("created_at", { ascending: false });
     if (error) {
@@ -29,9 +29,8 @@ export default function ControllerApiKeyManager() {
       setKeys([]);
       return;
     }
-    // SAFELY cast ONLY IF data is actually an array
     if (Array.isArray(data)) {
-      setKeys(data as ControllerApiKey[]);
+      setKeys(data);
     } else {
       setKeys([]);
     }
@@ -63,9 +62,9 @@ export default function ControllerApiKeyManager() {
     if (!window.confirm("Are you sure? This will deactivate the API key.")) return;
     setLoading(true);
     const { error } = await supabase
-      .from("controller_api_keys")
-      .update({ is_active: false }) // this shape matches controller_api_keys table
-      .eq("id", id); // COLUMN param is just a string
+      .from<ControllerApiKey>("controller_api_keys")
+      .update({ is_active: false })
+      .eq("id", id);
     if (error) {
       toast({ title: "Failed to revoke key", description: error.message, variant: "destructive" });
     } else {
