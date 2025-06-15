@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,12 +11,12 @@ import { UserPlus, Settings, User, Mail, Ban, Undo2 } from 'lucide-react';
 import type { User as UserType } from '@/types/database';
 import UserCard from './user-management/UserCard';
 import CreateUserDialog from './user-management/CreateUserDialog';
+import { useUsers } from './user-management/useUsers';
+import UserList from './user-management/UserList';
 
-const API_BASE = "http://localhost:4000/api"; // Update if you have a proxy or deploy elsewhere
-
+// Remove state and functions now handled in the new hook/component
 const UserManagement = () => {
-  const { toast } = useToast();
-  const [users, setUsers] = useState<UserType[]>([]);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newUser, setNewUser] = useState({
     username: '',
     email: '',
@@ -26,257 +25,36 @@ const UserManagement = () => {
     pin: '',
     card_number: ''
   });
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+
+  const {
+    users,
+    loading,
+    loadUsers,
+    createUser,
+    updateUserCardNumber,
+    resetUserPin,
+    toggleUserDisabled,
+    togglePinDisabled,
+    deleteUser
+  } = useUsers();
 
   useEffect(() => {
     loadUsers();
   }, []);
-
-  const loadUsers = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/users`);
-      const data = await res.json();
-      // Transform the data to match our User interface
-      const transformedData: UserType[] = (data || []).map((user: any) => ({
-        ...user,
-        role: user.role as 'admin' | 'staff',
-        disabled: !!user.disabled,
-        pin_disabled: !!user.pin_disabled,
-        card_number: user.card_number || null,
-      }));
-      setUsers(transformedData);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load users",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const generatePin = () => {
     const pin = Math.floor(1000 + Math.random() * 9000).toString();
     setNewUser(prev => ({ ...prev, pin }));
   };
 
-  // --- New API-based handlers ---
-
-  const handleCreateUser = async ({
-    username,
-    email,
-    name,
-    role,
-    pin,
-    card_number
-  }: {
-    username: string;
-    email: string;
-    name: string;
-    role: 'admin' | 'staff';
-    pin: string;
-    card_number?: string;
-  }) => {
-    // Uniqueness check (client-side, but DB also enforces)
-    if (users.some(u => !u.disabled && u.card_number === card_number)) {
-      toast({
-        title: "Error",
-        description: "This card number is already assigned to another enabled user.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!username || !email || !name || !pin || !card_number) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields, including card number.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    try {
-      // POST to /api/users
-      const res = await fetch(`${API_BASE}/users`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username, email, name, role, pin, card_number
-        }),
-      });
-      if (!res.ok) throw new Error('Failed to create user');
-      const data = await res.json();
-
-      const transformedData: UserType = {
-        ...data,
-        role: data.role as 'admin' | 'staff'
-      };
-
-      setUsers(prev => [...prev, transformedData]);
-      setNewUser({ username: '', email: '', name: '', role: 'staff', pin: '', card_number: '' });
-      setIsCreateDialogOpen(false);
-
-      toast({
-        title: "User Created",
-        description: `User ${data.name} has been created successfully`,
-      });
-
-      sendWelcomeEmail(transformedData);
-      return true;
-    } catch (error: any) {
-      console.error('Error creating user:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create user",
-        variant: "destructive",
-      });
-      return false;
-    }
+  const sendWelcomeEmail = async (user: any) => {
+    // Placeholder for sending email logic (if needed)
+  };
+  const sendPinByEmail = async (user: any, pin: string) => {
+    // Placeholder for sending email logic (if needed)
   };
 
-  const updateUserCardNumber = async (user: UserType, card_number: string) => {
-    try {
-      // PATCH /api/users/:id
-      const res = await fetch(`${API_BASE}/users/${user.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          card_number,
-        }),
-      });
-      if (!res.ok) throw new Error('Failed to update user');
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, card_number } : u));
-      toast({
-        title: "Card Number Updated",
-        description: `Card number updated for ${user.name}`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update card number",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const resetUserPin = async (user: UserType) => {
-    const newPin = Math.floor(1000 + Math.random() * 9000).toString();
-
-    try {
-      // PATCH /api/users/:id/pin
-      const res = await fetch(`${API_BASE}/users/${user.id}/pin`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: newPin }),
-      });
-      if (!res.ok) throw new Error('Failed to reset PIN');
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, pin: newPin } : u));
-      toast({
-        title: "PIN Reset",
-        description: `A new PIN has been set for ${user.name}. The PIN is not shown for security reasons.`,
-      });
-      sendPinByEmail(user, "••••");
-    } catch (error) {
-      console.error('Error resetting PIN:', error);
-      toast({
-        title: "Error",
-        description: "Failed to reset PIN",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const toggleUserDisabled = async (user: UserType) => {
-    try {
-      // PATCH /api/users/:id/disable
-      const res = await fetch(`${API_BASE}/users/${user.id}/disable`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ disabled: !user.disabled }),
-      });
-      if (!res.ok) throw new Error('Failed to update user');
-      setUsers(prev =>
-        prev.map(u => u.id === user.id ? { ...u, disabled: !user.disabled } : u)
-      );
-
-      toast({
-        title: !user.disabled ? "User Disabled" : "User Restored",
-        description: !user.disabled ? `${user.name} is now disabled` : `${user.name} is now active`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update user status",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const togglePinDisabled = async (user: UserType) => {
-    try {
-      // PATCH /api/users/:id/pin_disabled
-      const res = await fetch(`${API_BASE}/users/${user.id}/pin_disabled`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin_disabled: !user.pin_disabled }),
-      });
-      if (!res.ok) throw new Error('Failed to update PIN status');
-      setUsers(prev =>
-        prev.map(u => u.id === user.id ? { ...u, pin_disabled: !user.pin_disabled } : u)
-      );
-
-      toast({
-        title: !user.pin_disabled ? "PIN Disabled" : "PIN Enabled",
-        description: !user.pin_disabled
-          ? `PIN for ${user.name} is disabled`
-          : `PIN for ${user.name} is enabled`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update PIN status",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const sendWelcomeEmail = async (user: UserType) => {
-    toast({
-      title: "Welcome Email Sent",
-      description: `Welcome email with PIN sent to ${user.email}`,
-    });
-  };
-
-  const sendPinByEmail = async (user: UserType, pin: string) => {
-    toast({
-      title: "PIN Email Sent",
-      description: `A new PIN has been sent to ${user.email}.`,
-    });
-  };
-
-  const deleteUser = async (user: UserType) => {
-    try {
-      const res = await fetch(`${API_BASE}/users/${user.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error('Failed to delete user');
-      setUsers(prev => prev.filter(u => u.id !== user.id));
-      toast({
-        title: "User Deleted",
-        description: `${user.name} has been deleted.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete user",
-        variant: "destructive",
-      });
-    }
-  };
-
-  if (isLoading) {
+  if (loading) {
     return <div className="flex justify-center py-8">Loading users...</div>;
   }
 
@@ -290,48 +68,26 @@ const UserManagement = () => {
         <CreateUserDialog
           open={isCreateDialogOpen}
           setOpen={setIsCreateDialogOpen}
-          onCreate={handleCreateUser}
+          onCreate={async (userInfo) => {
+            const success = await createUser(userInfo);
+            if (success) setIsCreateDialogOpen(false);
+          }}
           cardNumber={newUser.card_number}
           setCardNumber={val => setNewUser(prev => ({ ...prev, card_number: val }))}
           existingUsers={users}
         />
       </div>
-      <div className="grid gap-4">
-        {users.filter(user => !user.disabled).map((user) => (
-          <UserCard
-            key={user.id}
-            user={user}
-            onResetPin={resetUserPin}
-            onEmailPin={user => sendPinByEmail(user, user.pin)}
-            onToggleDisabled={() => toggleUserDisabled(user)}
-            onTogglePinDisabled={() => togglePinDisabled(user)}
-            onCardNumberChange={newNumber => updateUserCardNumber(user, newNumber)}
-          />
-        ))}
-        {users.filter(user => user.disabled).length > 0 && (
-          <>
-            <div className="mt-8 text-gray-600 text-sm">Disabled Users</div>
-            {users.filter(user => user.disabled).map((user) => (
-              <UserCard
-                key={user.id}
-                user={user}
-                onResetPin={() => {}}
-                onEmailPin={() => {}}
-                onToggleDisabled={() => toggleUserDisabled(user)}
-                onTogglePinDisabled={() => togglePinDisabled(user)}
-                onDelete={() => deleteUser(user)}
-                disabled
-                onCardNumberChange={() => {}}
-              />
-            ))}
-          </>
-        )}
-      </div>
+      <UserList
+        users={users}
+        onResetPin={resetUserPin}
+        onEmailPin={user => sendPinByEmail(user, user.pin)}
+        onToggleDisabled={toggleUserDisabled}
+        onTogglePinDisabled={togglePinDisabled}
+        onDelete={deleteUser}
+        onCardNumberChange={updateUserCardNumber}
+      />
     </div>
   );
 };
 
 export default UserManagement;
-
-// NOTE: This file is now quite large (over 300 lines). Please consider refactoring into smaller files for maintainability.
-
