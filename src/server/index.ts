@@ -129,6 +129,60 @@ app.get("/api/health", (req, res) => {
   res.send("API is running");
 });
 
+// --- System Settings API ---
+// Get all settings or only those with a key prefix (e.g. ?prefix=ldap_)
+app.get("/api/system_settings", async (req, res) => {
+  try {
+    const { prefix } = req.query;
+    let rows;
+    if (prefix) {
+      const q = "SELECT * FROM system_settings WHERE setting_key LIKE $1";
+      const filter = String(prefix) + "%";
+      ({ rows } = await pool.query(q, [filter]));
+    } else {
+      ({ rows } = await pool.query("SELECT * FROM system_settings"));
+    }
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching system settings", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Upsert a system setting
+app.post("/api/system_settings", async (req, res) => {
+  try {
+    const { setting_key, setting_value, setting_type } = req.body;
+    if (!setting_key) return res.status(400).json({ error: "setting_key required" });
+    const q = `
+      INSERT INTO system_settings (setting_key, setting_value, setting_type, updated_at)
+      VALUES ($1, $2, $3, NOW())
+      ON CONFLICT (setting_key) DO UPDATE 
+        SET setting_value = $2, setting_type = $3, updated_at = NOW()
+      RETURNING *;
+    `;
+    const values = [setting_key, setting_value, setting_type ?? "string"];
+    const { rows } = await pool.query(q, values);
+    res.json(rows[0]);
+  } catch (err) {
+    console.error("Error upserting system setting", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Get LDAP sync logs (latest 10)
+app.get("/api/ldap_sync_logs", async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      "SELECT * FROM ldap_sync_log ORDER BY sync_started_at DESC LIMIT 10"
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching LDAP sync logs", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.listen(port, () => {
   console.log(`API server listening on port ${port}`);
 });

@@ -1,14 +1,15 @@
+
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import LdapConfigForm from "./database-settings/LdapConfigForm";
 import SyncHistoryCard from "./database-settings/SyncHistoryCard";
 import ControllerApiKeyManager from "./ControllerApiKeyManager";
 import CardSwipeHistory from "./CardSwipeHistory";
 
+const API_BASE = "http://localhost:4000/api";
 const ERROR_LEVELS = [
   { label: "All", value: "all" },
   { label: "Warning & Critical", value: "warning_critical" },
@@ -32,48 +33,61 @@ export default function SystemAdminSettings() {
     loadSyncLogs();
   }, []);
 
+  // --- REST call replacements for Supabase ---
   const fetchSystemSettings = async () => {
-    const { data } = await supabase
-      .from("system_settings")
-      .select("setting_key, setting_value")
-      .in("setting_key", ["admin_email", "error_alerts_level"]);
-    if (data) {
-      const d = Object.fromEntries(data.map((s: any) => [s.setting_key, s.setting_value]));
+    try {
+      const res = await fetch(`${API_BASE}/system_settings`);
+      const data = await res.json();
+      const d = Object.fromEntries((data || []).map((s: any) => [s.setting_key, s.setting_value]));
       setAdminEmail(d.admin_email ?? "");
       setErrorLevel(d.error_alerts_level ?? "all");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load admin/email settings",
+        variant: "destructive",
+      });
     }
   };
 
   const handleAdminEmailSave = async () => {
-    await supabase
-      .from("system_settings")
-      .upsert({ setting_key: "admin_email", setting_value: adminEmail, setting_type: "string" });
+    await fetch(`${API_BASE}/system_settings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        setting_key: "admin_email",
+        setting_value: adminEmail,
+        setting_type: "string",
+      })
+    });
     toast({ title: "Admin email updated", description: adminEmail });
   };
 
   const handleAlertLevelSave = async () => {
-    await supabase
-      .from("system_settings")
-      .upsert({ setting_key: "error_alerts_level", setting_value: errorLevel, setting_type: "string" });
+    await fetch(`${API_BASE}/system_settings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        setting_key: "error_alerts_level",
+        setting_value: errorLevel,
+        setting_type: "string",
+      })
+    });
     toast({ title: "Error alert level updated", description: errorLevel });
   };
 
-  // DatabaseSettings logic (LDAP)
+  // Loads ldap_ settings
   const loadSettings = async () => {
+    setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("system_settings")
-        .select("*")
-        .like("setting_key", "ldap_%");
-
-      if (error) throw error;
-      const settingsMap = data.reduce((acc: any, setting: any) => {
+      const res = await fetch(`${API_BASE}/system_settings?prefix=ldap_`);
+      const data = await res.json();
+      const settingsMap = (data || []).reduce((acc: any, setting: any) => {
         acc[setting.setting_key] = setting.setting_value || "";
         return acc;
       }, {});
       setSettings(settingsMap);
     } catch (error) {
-      console.error("Error loading settings:", error);
       toast({
         title: "Error",
         description: "Failed to load LDAP/database settings",
@@ -86,28 +100,30 @@ export default function SystemAdminSettings() {
 
   const loadSyncLogs = async () => {
     try {
-      const { data, error } = await supabase
-        .from("ldap_sync_log")
-        .select("*")
-        .order("sync_started_at", { ascending: false })
-        .limit(10);
-      if (error) throw error;
-      setSyncLogs(data || []);
+      const res = await fetch(`${API_BASE}/ldap_sync_logs`);
+      const data = await res.json();
+      setSyncLogs(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error loading sync logs:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load LDAP sync logs",
+        variant: "destructive",
+      });
     }
   };
 
+  // --- Setting update endpoint using REST ---
   const updateSetting = async (key: string, value: string) => {
     try {
-      const { error } = await supabase
-        .from("system_settings")
-        .update({
+      await fetch(`${API_BASE}/system_settings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          setting_key: key,
           setting_value: value,
-          updated_at: new Date().toISOString(),
+          setting_type: "string"
         })
-        .eq("setting_key", key);
-      if (error) throw error;
+      });
       setSettings((prev) => ({ ...prev, [key]: value }));
       toast({
         title: "Setting Updated",
@@ -122,13 +138,13 @@ export default function SystemAdminSettings() {
     }
   };
 
+  // fake/test LDAP handlers (no server triggers in legacy code)
   const testLdapConnection = async () => {
     toast({
       title: "LDAP Test",
       description: "Testing LDAP connection... (This would test the LDAP configuration)",
     });
   };
-
   const triggerLdapSync = async () => {
     setIsSyncing(true);
     toast({ title: "LDAP Sync Started", description: "Starting LDAP synchronization..." });
