@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,13 +22,15 @@ export default function ControllerApiKeyManager() {
 
   const fetchKeys = async () => {
     const { data, error } = await supabase
-      .from<ControllerApiKey>("controller_api_keys")
+      .from("controller_api_keys")
       .select("*")
       .order("created_at", { ascending: false });
     if (error) {
       toast({ title: "Error fetching keys", description: error.message, variant: "destructive" });
+      setKeys([]);
+      return;
     }
-    setKeys(data || []);
+    setKeys((data ?? []) as ControllerApiKey[]);
   };
 
   useEffect(() => {
@@ -56,7 +59,7 @@ export default function ControllerApiKeyManager() {
     if (!window.confirm("Are you sure? This will deactivate the API key.")) return;
     setLoading(true);
     const { error } = await supabase
-      .from<ControllerApiKey>("controller_api_keys")
+      .from("controller_api_keys")
       .update({ is_active: false })
       .eq("id", id);
     if (error) {
