@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,12 @@ export default function ControllerApiKeyManager() {
       setKeys([]);
       return;
     }
-    setKeys((data ?? []) as ControllerApiKey[]);
+    // SAFELY cast ONLY IF data is actually an array
+    if (Array.isArray(data)) {
+      setKeys(data as ControllerApiKey[]);
+    } else {
+      setKeys([]);
+    }
   };
 
   useEffect(() => {
