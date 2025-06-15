@@ -7,11 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { UserPlus, Settings, User, Mail, Ban, Undo2 } from 'lucide-react';
 import type { User as UserType } from '@/types/database';
 import UserCard from './user-management/UserCard';
 import CreateUserDialog from './user-management/CreateUserDialog';
+
+const API_BASE = "http://localhost:4000/api"; // Update if you have a proxy or deploy elsewhere
 
 const UserManagement = () => {
   const { toast } = useToast();
@@ -32,25 +33,20 @@ const UserManagement = () => {
   }, []);
 
   const loadUsers = async () => {
+    setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
+      const res = await fetch(`${API_BASE}/users`);
+      const data = await res.json();
       // Transform the data to match our User interface
-      const transformedData: UserType[] = (data || []).map(user => ({
+      const transformedData: UserType[] = (data || []).map((user: any) => ({
         ...user,
         role: user.role as 'admin' | 'staff',
         disabled: !!user.disabled,
         pin_disabled: !!user.pin_disabled,
         card_number: user.card_number || null,
       }));
-
       setUsers(transformedData);
     } catch (error) {
-      console.error('Error loading users:', error);
       toast({
         title: "Error",
         description: "Failed to load users",
