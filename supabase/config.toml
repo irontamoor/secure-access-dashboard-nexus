@@ -1,1 +1,8 @@
+
 project_id = "sjsrbuhchekxcpvjvsha"
+
+[functions.validate-cardpin]
+verify_jwt = false
+
+[functions.log-access]
+verify_jwt = false

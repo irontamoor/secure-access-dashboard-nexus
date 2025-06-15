@@ -12,6 +12,8 @@ export type Database = {
       access_logs: {
         Row: {
           access_type: string
+          card_number: string | null
+          controller_id: string | null
           door_id: string | null
           id: string
           ip_address: unknown | null
@@ -23,6 +25,8 @@ export type Database = {
         }
         Insert: {
           access_type: string
+          card_number?: string | null
+          controller_id?: string | null
           door_id?: string | null
           id?: string
           ip_address?: unknown | null
@@ -34,6 +38,8 @@ export type Database = {
         }
         Update: {
           access_type?: string
+          card_number?: string | null
+          controller_id?: string | null
           door_id?: string | null
           id?: string
           ip_address?: unknown | null
@@ -44,6 +50,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "access_logs_controller_id_fkey"
+            columns: ["controller_id"]
+            isOneToOne: false
+            referencedRelation: "controller_api_keys"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "access_logs_door_id_fkey"
             columns: ["door_id"]
@@ -59,6 +72,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      controller_api_keys: {
+        Row: {
+          api_key: string
+          controller_name: string
+          created_at: string
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          api_key: string
+          controller_name: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          api_key?: string
+          controller_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: []
       }
       door_group_members: {
         Row: {
