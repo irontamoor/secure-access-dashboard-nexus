@@ -71,6 +71,7 @@ const UserManagement = () => {
           onCreate={async (userInfo) => {
             const success = await createUser(userInfo);
             if (success) setIsCreateDialogOpen(false);
+            return success; // <-- Fixed: always return boolean
           }}
           cardNumber={newUser.card_number}
           setCardNumber={val => setNewUser(prev => ({ ...prev, card_number: val }))}
