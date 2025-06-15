@@ -64,8 +64,8 @@ export default function ControllerApiKeyManager() {
     setLoading(true);
     const { error } = await supabase
       .from("controller_api_keys")
-      .update({ is_active: false })
-      .eq("id" as any, id);
+      .update({ is_active: false }) // this shape matches controller_api_keys table
+      .eq("id", id); // COLUMN param is just a string
     if (error) {
       toast({ title: "Failed to revoke key", description: error.message, variant: "destructive" });
     } else {
