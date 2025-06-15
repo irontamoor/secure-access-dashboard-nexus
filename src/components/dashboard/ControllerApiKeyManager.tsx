@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 type ControllerApiKey = {
@@ -13,6 +13,8 @@ type ControllerApiKey = {
   created_at: string;
 };
 
+const API_BASE = "http://localhost:4000/api";
+
 export default function ControllerApiKeyManager() {
   const { toast } = useToast();
   const [keys, setKeys] = useState<ControllerApiKey[]>([]);
@@ -20,27 +22,22 @@ export default function ControllerApiKeyManager() {
   const [loading, setLoading] = useState(false);
 
   const fetchKeys = async () => {
-    const { data, error } = await supabase
-      .from("controller_api_keys")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      toast({ title: "Error fetching keys", description: error.message, variant: "destructive" });
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/keys`);
+      const data = await res.json();
+      if (Array.isArray(data)) setKeys(data);
+      else setKeys([]);
+    } catch (error: any) {
+      toast({ title: "Error fetching keys", description: error.message ?? String(error), variant: "destructive" });
       setKeys([]);
-      return;
-    }
-    // Only cast if valid array, defensively
-    if (Array.isArray(data)) {
-      setKeys(data as ControllerApiKey[]);
-    } else {
-      setKeys([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchKeys();
-    // eslint-disable-next-line
   }, []);
 
   const handleCreateKey = async () => {
@@ -49,31 +46,43 @@ export default function ControllerApiKeyManager() {
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase.rpc("gen_random_api_key", { controller_name_in: newName });
-    if (error) {
-      toast({ title: "API key generation failed", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      const res = await fetch(`${API_BASE}/keys`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ controller_name: newName })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Failed to create API key");
+      }
+      const newKey = await res.json();
       toast({ title: "API Key created", description: `Controller: ${newName}` });
       setNewName("");
       fetchKeys();
+    } catch (error: any) {
+      toast({ title: "API key generation failed", description: error.message ?? String(error), variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleRevoke = async (id: string) => {
     if (!window.confirm("Are you sure? This will deactivate the API key.")) return;
     setLoading(true);
-    const { error } = await supabase
-      .from("controller_api_keys")
-      .update({ is_active: false })
-      .eq("id", id);
-    if (error) {
-      toast({ title: "Failed to revoke key", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      const res = await fetch(`${API_BASE}/keys/${id}/revoke`, { method: "PATCH" });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Failed to revoke key");
+      }
       toast({ title: "API key revoked" });
       fetchKeys();
+    } catch (error: any) {
+      toast({ title: "Failed to revoke key", description: error.message ?? String(error), variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
