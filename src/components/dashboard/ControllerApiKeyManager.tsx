@@ -23,7 +23,7 @@ export default function ControllerApiKeyManager() {
     const { data, error } = await supabase
       .from("controller_api_keys")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("created_at" as any, { ascending: false });
     if (error) {
       toast({ title: "Error fetching keys", description: error.message, variant: "destructive" });
       setKeys([]);
