@@ -16,7 +16,7 @@ type ControllerApiKey = {
 export default function ControllerApiKeyManager() {
   const { toast } = useToast();
   const [keys, setKeys] = useState<ControllerApiKey[]>([]);
-  const [newName, setNewName] = useState("");
+  const [newName, setNewName] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   const fetchKeys = async () => {

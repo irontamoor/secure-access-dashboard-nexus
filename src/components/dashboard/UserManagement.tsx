@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,6 +63,8 @@ const UserManagement = () => {
     setNewUser(prev => ({ ...prev, pin }));
   };
 
+  // --- New API-based handlers ---
+
   const handleCreateUser = async ({
     username,
     email,
@@ -97,20 +100,16 @@ const UserManagement = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .insert([{
-          username,
-          email,
-          name,
-          role,
-          pin,
-          card_number
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
+      // POST to /api/users
+      const res = await fetch(`${API_BASE}/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username, email, name, role, pin, card_number
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to create user');
+      const data = await res.json();
 
       const transformedData: UserType = {
         ...data,
@@ -141,17 +140,15 @@ const UserManagement = () => {
 
   const updateUserCardNumber = async (user: UserType, card_number: string) => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .update({ 
-          card_number: card_number,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      // PATCH /api/users/:id
+      const res = await fetch(`${API_BASE}/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          card_number,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update user');
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, card_number } : u));
       toast({
         title: "Card Number Updated",
@@ -168,35 +165,20 @@ const UserManagement = () => {
 
   const resetUserPin = async (user: UserType) => {
     const newPin = Math.floor(1000 + Math.random() * 9000).toString();
-    
+
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .update({ 
-          pin: newPin,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      const transformedData: UserType = {
-        ...data,
-        role: data.role as 'admin' | 'staff'
-      };
-
-      setUsers(prev => prev.map(u => 
-        u.id === user.id ? transformedData : u
-      ));
-      
+      // PATCH /api/users/:id/pin
+      const res = await fetch(`${API_BASE}/users/${user.id}/pin`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: newPin }),
+      });
+      if (!res.ok) throw new Error('Failed to reset PIN');
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, pin: newPin } : u));
       toast({
         title: "PIN Reset",
         description: `A new PIN has been set for ${user.name}. The PIN is not shown for security reasons.`,
       });
-
-      // Send PIN by email (masked in UI)
       sendPinByEmail(user, "••••");
     } catch (error) {
       console.error('Error resetting PIN:', error);
@@ -210,15 +192,13 @@ const UserManagement = () => {
 
   const toggleUserDisabled = async (user: UserType) => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .update({ disabled: !user.disabled, updated_at: new Date().toISOString() })
-        .eq('id', user.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
+      // PATCH /api/users/:id/disable
+      const res = await fetch(`${API_BASE}/users/${user.id}/disable`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ disabled: !user.disabled }),
+      });
+      if (!res.ok) throw new Error('Failed to update user');
       setUsers(prev =>
         prev.map(u => u.id === user.id ? { ...u, disabled: !user.disabled } : u)
       );
@@ -238,13 +218,13 @@ const UserManagement = () => {
 
   const togglePinDisabled = async (user: UserType) => {
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ pin_disabled: !user.pin_disabled, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
+      // PATCH /api/users/:id/pin_disabled
+      const res = await fetch(`${API_BASE}/users/${user.id}/pin_disabled`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin_disabled: !user.pin_disabled }),
+      });
+      if (!res.ok) throw new Error('Failed to update PIN status');
       setUsers(prev =>
         prev.map(u => u.id === user.id ? { ...u, pin_disabled: !user.pin_disabled } : u)
       );
@@ -265,7 +245,6 @@ const UserManagement = () => {
   };
 
   const sendWelcomeEmail = async (user: UserType) => {
-    // This would call a Supabase edge function to send welcome email
     toast({
       title: "Welcome Email Sent",
       description: `Welcome email with PIN sent to ${user.email}`,
@@ -273,7 +252,6 @@ const UserManagement = () => {
   };
 
   const sendPinByEmail = async (user: UserType, pin: string) => {
-    // This would call a Supabase edge function to send PIN
     toast({
       title: "PIN Email Sent",
       description: `A new PIN has been sent to ${user.email}.`,
@@ -282,13 +260,8 @@ const UserManagement = () => {
 
   const deleteUser = async (user: UserType) => {
     try {
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', user.id);
-
-      if (error) throw error;
-
+      const res = await fetch(`${API_BASE}/users/${user.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error('Failed to delete user');
       setUsers(prev => prev.filter(u => u.id !== user.id));
       toast({
         title: "User Deleted",
@@ -361,3 +334,4 @@ const UserManagement = () => {
 export default UserManagement;
 
 // NOTE: This file is now quite large (over 300 lines). Please consider refactoring into smaller files for maintainability.
+
