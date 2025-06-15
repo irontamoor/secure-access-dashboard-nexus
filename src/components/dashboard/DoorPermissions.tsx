@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Shield, Trash2, User, DoorOpen } from 'lucide-react';
+
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { Shield, Trash2, User, DoorOpen } from "lucide-react";
 import type { User as DBUser, Door as DBDoor, DoorPermission } from '@/types/database';
 import PermissionCard from './door-permissions/PermissionCard';
 import EmptyPermissionsPlaceholder from './door-permissions/EmptyPermissionsPlaceholder';
@@ -14,6 +14,8 @@ export type DoorGroup = {
   description?: string | null;
 };
 
+const API_BASE = "http://localhost:4000/api";
+
 const DoorPermissions = () => {
   const { toast } = useToast();
   const [users, setUsers] = useState<DBUser[]>([]);
@@ -22,39 +24,42 @@ const DoorPermissions = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [doorGroups, setDoorGroups] = useState<DoorGroup[]>([]);
 
+  // Load all data via REST API
   useEffect(() => {
     loadData();
     loadDoorGroups();
   }, []);
 
   const loadDoorGroups = async () => {
-    const { data, error } = await supabase.from('door_groups').select('*').order('name');
-    if (!error && data) setDoorGroups(data);
+    try {
+      const res = await fetch(`${API_BASE}/door_groups`);
+      const data = await res.json();
+      setDoorGroups(Array.isArray(data) ? data : []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load door groups",
+        variant: "destructive",
+      });
+    }
   };
 
   const loadData = async () => {
+    setIsLoading(true);
     try {
-      const [usersResult, doorsResult, permissionsResult] = await Promise.all([
-        supabase.from('users').select('*').order('name'),
-        supabase.from('doors').select('*').order('name'),
-        supabase.from('door_permissions').select('*').order('granted_at', { ascending: false })
+      const [usersRes, doorsRes, permsRes] = await Promise.all([
+        fetch(`${API_BASE}/users`),
+        fetch(`${API_BASE}/doors`),
+        fetch(`${API_BASE}/door_permissions`),
       ]);
-      if (usersResult.error) throw usersResult.error;
-      if (doorsResult.error) throw doorsResult.error;
-      if (permissionsResult.error) throw permissionsResult.error;
+      const usersData = await usersRes.json();
+      const doorsData = await doorsRes.json();
+      const permsData = await permsRes.json();
 
-      setUsers(usersResult.data.map(user => ({
-        ...user,
-        role: user.role as 'admin' | 'staff'
-      })));
-      setDoors(doorsResult.data.map(door => ({
-        ...door,
-        status: door.status as 'locked' | 'unlocked' | 'maintenance',
-        ip_address: typeof door.ip_address === 'string' ? door.ip_address : (door.ip_address === null ? null : String(door.ip_address)),
-      })));
-      setPermissions(permissionsResult.data);
+      setUsers(Array.isArray(usersData) ? usersData : []);
+      setDoors(Array.isArray(doorsData) ? doorsData : []);
+      setPermissions(Array.isArray(permsData) ? permsData : []);
     } catch (error) {
-      console.error('Error loading data:', error);
       toast({
         title: "Error",
         description: "Failed to load door permissions data",
@@ -67,20 +72,16 @@ const DoorPermissions = () => {
 
   const revokePermission = async (permissionId: string) => {
     try {
-      const { error } = await supabase
-        .from('door_permissions')
-        .delete()
-        .eq('id', permissionId);
-
-      if (error) throw error;
-
+      const res = await fetch(`${API_BASE}/door_permissions/${permissionId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to revoke permission");
       setPermissions(prev => prev.filter(p => p.id !== permissionId));
       toast({
         title: "Permission Revoked",
         description: "Door access permission has been revoked",
       });
     } catch (error) {
-      console.error('Error revoking permission:', error);
       toast({
         title: "Error",
         description: "Failed to revoke permission",
