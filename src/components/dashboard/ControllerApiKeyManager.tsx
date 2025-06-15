@@ -61,7 +61,7 @@ export default function ControllerApiKeyManager() {
     const { error } = await supabase
       .from("controller_api_keys")
       .update({ is_active: false })
-      .eq("id", id);
+      .eq("id" as any, id);
     if (error) {
       toast({ title: "Failed to revoke key", description: error.message, variant: "destructive" });
     } else {
