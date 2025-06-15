@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import LdapConfigForm from "./database-settings/LdapConfigForm";
 import SyncHistoryCard from "./database-settings/SyncHistoryCard";
+import ControllerApiKeyManager from "./ControllerApiKeyManager";
+import CardSwipeHistory from "./CardSwipeHistory";
 
 const ERROR_LEVELS = [
   { label: "All", value: "all" },
@@ -214,6 +216,12 @@ export default function SystemAdminSettings() {
           <Button onClick={handleAlertLevelSave}>Save</Button>
         </div>
       </div>
+
+      {/* Controller API Keys Management */}
+      <ControllerApiKeyManager />
+
+      {/* Card Swipe History Lookup */}
+      <CardSwipeHistory />
     </div>
   );
 }
