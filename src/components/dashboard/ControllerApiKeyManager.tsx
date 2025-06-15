@@ -21,7 +21,7 @@ export default function ControllerApiKeyManager() {
 
   const fetchKeys = async () => {
     const { data, error } = await supabase
-      .from<ControllerApiKey>("controller_api_keys")
+      .from("controller_api_keys")
       .select("*")
       .order("created_at", { ascending: false });
     if (error) {
@@ -29,8 +29,9 @@ export default function ControllerApiKeyManager() {
       setKeys([]);
       return;
     }
+    // Only cast if valid array, defensively
     if (Array.isArray(data)) {
-      setKeys(data);
+      setKeys(data as ControllerApiKey[]);
     } else {
       setKeys([]);
     }
@@ -62,7 +63,7 @@ export default function ControllerApiKeyManager() {
     if (!window.confirm("Are you sure? This will deactivate the API key.")) return;
     setLoading(true);
     const { error } = await supabase
-      .from<ControllerApiKey>("controller_api_keys")
+      .from("controller_api_keys")
       .update({ is_active: false })
       .eq("id", id);
     if (error) {
