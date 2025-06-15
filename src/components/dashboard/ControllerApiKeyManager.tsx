@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,7 +58,7 @@ export default function ControllerApiKeyManager() {
     const { error } = await supabase
       .from("controller_api_keys")
       .update({ is_active: false })
-      .eq("id", id as string);
+      .eq("id" as any, id);
     if (error) {
       toast({ title: "Failed to revoke key", description: error.message, variant: "destructive" });
     } else {
