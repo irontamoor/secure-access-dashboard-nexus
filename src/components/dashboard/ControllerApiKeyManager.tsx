@@ -23,7 +23,8 @@ export default function ControllerApiKeyManager() {
     const { data, error } = await supabase
       .from("controller_api_keys")
       .select("*")
-      .order("created_at" as any, { ascending: false });
+      .order("created_at", { ascending: false });
+
     if (error) {
       toast({ title: "Error fetching keys", description: error.message, variant: "destructive" });
       setKeys([]);
@@ -65,7 +66,7 @@ export default function ControllerApiKeyManager() {
     const { error } = await supabase
       .from("controller_api_keys")
       .update({ is_active: false })
-      .eq("id" as any, id);
+      .eq("id", id);
     if (error) {
       toast({ title: "Failed to revoke key", description: error.message, variant: "destructive" });
     } else {
